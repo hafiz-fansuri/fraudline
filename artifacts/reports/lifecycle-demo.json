@@ -1,0 +1,14 @@
+{
+  "provenance": "Synthetic traffic; injected covariate shift, no real payments",
+  "predictions": 600,
+  "delayed_labels": 200,
+  "drift_alert": true,
+  "retraining": "Waiting for a new validated labeled dataset",
+  "performance": {
+    "status": "ready",
+    "labeled_rows": 200,
+    "pr_auc": 0.038185693511107434,
+    "brier": 0.030712144145295
+  },
+  "evidently_html": true
+}

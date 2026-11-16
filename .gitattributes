@@ -1,0 +1,4 @@
+* text=auto eol=lf
+demo-bundle/**/model.txt -text
+*.jpg binary
+*.png binary

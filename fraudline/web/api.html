@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fraudline — API reference</title><link rel="stylesheet" href="/assets/style.css"></head><body><header class="masthead"><a class="wordmark" href="/">fraudline</a><span class="environment">Synthetic data demonstration</span></header><main class="shell"><div class="section-title"><h1>API reference.</h1><p>A small prediction contract. No public lifecycle mutation endpoints.</p></div><div class="evidence-layout"><section><h2>Score one transaction</h2><p><code>POST /predict</code></p><pre><code>{
+  "transaction_id": "TEST-001",
+  "amount": 249.00,
+  "time_offset": 7200,
+  "product": "W",
+  "network": "visa",
+  "card_type": "debit",
+  "distance": 280,
+  "identity_present": true
+}</code></pre><p>The response includes probability, approve/review/block decision, model version, thresholds, reason contributions and a persisted prediction ID.</p><p><code>POST /predict/batch</code> accepts an object with a <code>transactions</code> array of 1–100 entries using this same contract.</p><p><a href="/openapi.json">Download the full OpenAPI schema</a></p></section><section><h2>Service endpoints</h2><dl class="fact-list"><div><dt>GET /health</dt><dd>Liveness</dd></div><div><dt>GET /ready</dt><dd>Verified model readiness; 503 when no model is loaded</dd></div><div><dt>GET /metrics</dt><dd>Prometheus request, error, latency and drift metrics</dd></div><div><dt>GET /api/model</dt><dd>Model metadata, evaluation and registry history</dd></div><div><dt>GET /api/monitoring</dt><dd>Latest scheduled monitoring report</dd></div></dl><p class="footnote">Requests are limited to 64 KiB and 120 POSTs per client per minute in a single process. Invalid inputs return 422; excessive payloads 413; throttled requests 429. Send illustrative values only. Reason contributions use uncalibrated log-odds and are not causal explanations.</p></section></div><a class="text-link" href="/">Return to the transaction desk</a></main></body></html>

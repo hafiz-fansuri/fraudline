@@ -1,0 +1,54 @@
+name: Verify and build
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.8"
+          python-version: "3.13"
+          enable-cache: true
+      - run: uv sync --frozen --extra dev --extra ops
+      - run: uv run ruff check fraudline tests scripts
+      - run: uv run pytest --cov=fraudline --cov-report=xml
+      - run: uv run python -m fraudline.pipeline demo --rows 6000
+      - run: uv run python -m fraudline.monitor --demo
+      - run: uv run python -m scripts.export_demo
+      - name: Audit inference dependencies
+        run: |
+          mkdir -p runtime
+          uv export --no-dev --no-emit-project --no-hashes --output-file runtime/requirements-audit.txt
+          uv run pip-audit -r runtime/requirements-audit.txt
+      - name: Audit optional local operations dependencies
+        continue-on-error: true
+        run: uv run pip-audit --format json --output artifacts/reports/dependency-audit.json
+      - run: docker build --target runtime -t fraudline:ci .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verification-evidence
+          path: |
+            coverage.xml
+            artifacts/reports/*.json
+          retention-days: 7
+  deploy:
+    if: github.event_name == 'push'
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy verified main branch through Render
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+            echo 'No deployment hook configured; verified source remains undeployed.'
+            exit 0
+          fi
+          curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK"

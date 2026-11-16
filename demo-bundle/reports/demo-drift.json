@@ -1,0 +1,120 @@
+{
+  "reference": {
+    "status": "ready",
+    "samples": 1500,
+    "minimum": 100,
+    "drifted": false,
+    "features": [
+      {
+        "feature": "log_amount",
+        "distance": 0.0309,
+        "drifted": false
+      },
+      {
+        "feature": "hour_sin",
+        "distance": 0.0082,
+        "drifted": false
+      },
+      {
+        "feature": "hour_cos",
+        "distance": 0.0037,
+        "drifted": false
+      },
+      {
+        "feature": "product",
+        "distance": 0.0175,
+        "drifted": false
+      },
+      {
+        "feature": "network",
+        "distance": 0.0178,
+        "drifted": false
+      },
+      {
+        "feature": "card_type",
+        "distance": 0.0084,
+        "drifted": false
+      },
+      {
+        "feature": "log_distance",
+        "distance": 0.0305,
+        "drifted": false
+      },
+      {
+        "feature": "distance_missing",
+        "distance": 0.0119,
+        "drifted": false
+      },
+      {
+        "feature": "identity_present",
+        "distance": 0.0059,
+        "drifted": false
+      }
+    ],
+    "method": "Jensen-Shannon distance; threshold 0.20; reference quantile bins",
+    "scenario": "reference",
+    "provenance": "Independent synthetic sample",
+    "prediction_mean": 0.022846242462183683,
+    "generated_at": "2026-11-16T14:51:29.120861+00:00",
+    "retraining": "Not triggered: isolated demonstration"
+  },
+  "shifted": {
+    "status": "ready",
+    "samples": 1500,
+    "minimum": 100,
+    "drifted": true,
+    "features": [
+      {
+        "feature": "log_amount",
+        "distance": 0.5504,
+        "drifted": true
+      },
+      {
+        "feature": "hour_sin",
+        "distance": 0.0082,
+        "drifted": false
+      },
+      {
+        "feature": "hour_cos",
+        "distance": 0.0037,
+        "drifted": false
+      },
+      {
+        "feature": "product",
+        "distance": 0.0175,
+        "drifted": false
+      },
+      {
+        "feature": "network",
+        "distance": 0.0178,
+        "drifted": false
+      },
+      {
+        "feature": "card_type",
+        "distance": 0.0084,
+        "drifted": false
+      },
+      {
+        "feature": "log_distance",
+        "distance": 0.7139,
+        "drifted": true
+      },
+      {
+        "feature": "distance_missing",
+        "distance": 0.2636,
+        "drifted": true
+      },
+      {
+        "feature": "identity_present",
+        "distance": 0.0059,
+        "drifted": false
+      }
+    ],
+    "method": "Jensen-Shannon distance; threshold 0.20; reference quantile bins",
+    "scenario": "shifted",
+    "provenance": "Injected synthetic scenario",
+    "prediction_mean": 0.16568971669173901,
+    "generated_at": "2026-11-16T14:51:29.168601+00:00",
+    "retraining": "Not triggered: isolated demonstration"
+  }
+}

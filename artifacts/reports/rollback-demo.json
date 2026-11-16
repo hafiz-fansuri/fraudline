@@ -1,0 +1,11 @@
+{
+  "audit_privileges": {
+    "insert": true,
+    "update": false,
+    "delete": false
+  },
+  "original_champion": "fl-20261116143622-8ccca6",
+  "verified_rollback_version": "fl-20261116143423-3a03c6",
+  "restored_champion": "fl-20261116143622-8ccca6",
+  "service_readiness_verified_after_each_restart": true
+}

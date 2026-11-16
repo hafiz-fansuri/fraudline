@@ -1,0 +1,35 @@
+stages:
+  prepare:
+    cmd: python -m fraudline.pipeline prepare
+    deps:
+      - fraudline/data.py
+      - fraudline/pipeline.py
+    outs:
+      - data
+  train:
+    cmd: python -m fraudline.pipeline train
+    deps:
+      - data
+      - fraudline/data.py
+      - fraudline/model.py
+      - fraudline/pipeline.py
+      - uv.lock
+    outs:
+      - artifacts/models:
+          persist: true
+      - artifacts/reference.parquet:
+          persist: true
+      - artifacts/registry.json:
+          persist: true
+    metrics:
+      - artifacts/reports/latest-training.json:
+          cache: false
+  drift_demo:
+    cmd: python -m fraudline.monitor --demo
+    deps:
+      - fraudline/monitor.py
+      - artifacts/models
+      - artifacts/reference.parquet
+      - artifacts/registry.json
+    outs:
+      - artifacts/reports/demo-drift.json

@@ -1,0 +1,76 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: fraudline
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run python scripts/up.py first}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./infra/postgres.sql:/docker-entrypoint-initdb.d/001.sql:ro
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U postgres -d fraudline]
+      interval: 5s
+      retries: 20
+  mlflow:
+    build: {context: ., target: operations}
+    command: [mlflow, server, --host, 0.0.0.0, --port, "5000", --workers, "1", --allowed-hosts, "localhost:*,127.0.0.1:*,mlflow:*", --backend-store-uri, "postgresql+psycopg://postgres:${POSTGRES_PASSWORD}@postgres/mlflow", --serve-artifacts, --artifacts-destination, /mlartifacts]
+    environment:
+      MLFLOW_SERVER_ENABLE_JOB_EXECUTION: "false"
+    ports: ["127.0.0.1:5013:5000"]
+    volumes: ["mlartifacts:/mlartifacts"]
+    depends_on:
+      postgres: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, curl, -f, http://localhost:5000/health]
+      interval: 10s
+      retries: 30
+      start_period: 40s
+  init:
+    build: {context: ., target: operations}
+    command: [python, -m, scripts.bootstrap]
+    environment:
+      DATABASE_URL: "postgresql+psycopg://postgres:${POSTGRES_PASSWORD}@postgres/fraudline"
+      AUDIT_PASSWORD: ${AUDIT_PASSWORD:?Run python scripts/up.py first}
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    volumes: ["./artifacts:/app/artifacts", "./data:/app/data"]
+    depends_on:
+      mlflow: {condition: service_healthy}
+  api:
+    build: {context: ., target: runtime}
+    environment:
+      DATABASE_URL: "postgresql+psycopg://scoring_writer:${AUDIT_PASSWORD}@postgres/fraudline"
+    ports: ["127.0.0.1:8013:8000"]
+    volumes: ["./artifacts:/app/artifacts:ro"]
+    depends_on:
+      init: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, curl, -f, http://localhost:8000/ready]
+      interval: 15s
+      retries: 10
+  monitor:
+    build: {context: ., target: operations}
+    command: [python, -m, scripts.watch]
+    environment:
+      DATABASE_URL: "postgresql+psycopg://postgres:${POSTGRES_PASSWORD}@postgres/fraudline"
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    volumes: ["./artifacts:/app/artifacts", "./data:/app/data", "monitor-runtime:/app/runtime"]
+    depends_on:
+      api: {condition: service_healthy}
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    volumes: ["./infra/prometheus.yaml:/etc/prometheus/prometheus.yml:ro", "./infra/alerts.yaml:/etc/prometheus/alerts.yaml:ro"]
+    ports: ["127.0.0.1:9093:9090"]
+    depends_on: [api]
+  grafana:
+    image: grafana/grafana:12.1.1
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?Run python scripts/up.py first}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    ports: ["127.0.0.1:3013:3000"]
+    volumes: ["./infra/grafana:/etc/grafana/provisioning:ro", "grafana:/var/lib/grafana"]
+    depends_on: [prometheus]
+volumes:
+  postgres:
+  mlartifacts:
+  grafana:
+  monitor-runtime:

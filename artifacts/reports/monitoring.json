@@ -1,0 +1,68 @@
+{
+  "status": "ready",
+  "samples": 665,
+  "minimum": 100,
+  "drifted": true,
+  "features": [
+    {
+      "feature": "log_amount",
+      "distance": 0.3502,
+      "drifted": true
+    },
+    {
+      "feature": "hour_sin",
+      "distance": 0.0878,
+      "drifted": false
+    },
+    {
+      "feature": "hour_cos",
+      "distance": 0.1001,
+      "drifted": false
+    },
+    {
+      "feature": "product",
+      "distance": 0.0289,
+      "drifted": false
+    },
+    {
+      "feature": "network",
+      "distance": 0.0602,
+      "drifted": false
+    },
+    {
+      "feature": "card_type",
+      "distance": 0.0364,
+      "drifted": false
+    },
+    {
+      "feature": "log_distance",
+      "distance": 0.4276,
+      "drifted": true
+    },
+    {
+      "feature": "distance_missing",
+      "distance": 0.1311,
+      "drifted": false
+    },
+    {
+      "feature": "identity_present",
+      "distance": 0.0421,
+      "drifted": false
+    }
+  ],
+  "method": "Jensen-Shannon distance; threshold 0.20; reference quantile bins",
+  "performance": {
+    "status": "ready",
+    "labeled_rows": 200,
+    "pr_auc": 0.038185693511107434,
+    "brier": 0.030712144145295
+  },
+  "generated_at": "2026-11-16T14:51:55.491971+00:00",
+  "retraining": "Waiting for a new validated labeled dataset",
+  "alerts": [
+    {
+      "kind": "data_drift",
+      "status": "local_alert"
+    }
+  ]
+}
