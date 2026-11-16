@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -169,7 +170,8 @@ def test_hosted_bundle_uses_temporary_storage(monkeypatch, tmp_path):
 
     import app as entrypoint
 
-    monkeypatch.setattr(entrypoint.ctypes, "CDLL", lambda *args, **kwargs: None)
+    if os.name == "nt":
+        monkeypatch.setattr(entrypoint.ctypes, "CDLL", lambda *args, **kwargs: None)
 
     monkeypatch.setenv("VERCEL", "1")
     monkeypatch.setenv("FRAUDLINE_HOME", str(Path.cwd()))
@@ -180,7 +182,9 @@ def test_hosted_bundle_uses_temporary_storage(monkeypatch, tmp_path):
 
     bundle = next(Path("demo-bundle/models").iterdir())
     with TestClient(create_app(bundle, f"sqlite:///{tmp_path / 'vercel-events.db'}")) as client:
-        assert client.get("/ready").json()["audit_storage"] == "ephemeral"
+        ready = client.get("/ready")
+        assert ready.status_code == 200, ready.text
+        assert ready.json()["audit_storage"] == "ephemeral"
         sample = client.get("/api/samples").json()["transactions"][0]
         assert client.post("/predict", json=sample).status_code == 200
 
