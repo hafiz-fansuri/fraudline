@@ -4,6 +4,14 @@ A fraud detection MLOps project with a transaction investigation desk: real trai
 
 **Current data is synthetic.** IEEE-CIS data has not been supplied. Synthetic metrics demonstrate the pipeline; they do not establish real fraud detection quality. This is a portfolio demonstration, not a banking service.
 
+![Fraudline transaction investigation desk](docs/desk-desktop.jpg)
+
+## Executed verification
+
+The local project has passed 11 tests (71% overall coverage; 90% API and 86% feature/data coverage). The Docker/Postgres path measured warm HTTP p95 at 62.3 ms for 60 requests with four concurrent clients on the documented Windows host. This is a small local benchmark, not a production SLA. See [verification evidence](docs/verification.md).
+
+The complete stack was started and checked. A synthetic traffic exercise produced 600 audited predictions, 200 delayed labels, an Evidently report and a drift alert. A previous model was served after rollback and the original champion was restored. Public Render deployment and GitHub-hosted CI have not run.
+
 ## Run without Docker
 
 Install Python 3.11–3.13 and [uv](https://docs.astral.sh/uv/). From this directory:
@@ -75,6 +83,8 @@ uv run python -m scripts.labels delayed-labels.csv
 Restart the API after promotion/rollback; it pins a verified bundle at startup. `make rollback` restarts the Compose API automatically. Set `MLFLOW_TRACKING_URI` to log runs and register aliases. Without it, the local JSON bundle registry is authoritative. Do not run multiple independent lifecycle operators against the same workspace.
 
 See [runbook](docs/runbook.md), [model card](docs/model-card.md) and [architecture](docs/architecture.md).
+
+![Injected synthetic distribution shift](docs/drift-demo.jpg)
 
 ## Free hosted demo
 

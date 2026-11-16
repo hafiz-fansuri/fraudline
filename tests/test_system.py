@@ -148,9 +148,11 @@ def test_api_contract(bundle, tmp_path):
         assert expected == row["digest"]
         previous = expected
     store.add_label(result["prediction_id"], 1)
-    assert store.performance()["status"] == "insufficient_labels"
+    assert store.performance(result["model_version"])["status"] == "insufficient_labels"
+    assert store.performance("different-model")["labeled_rows"] == 0
     with pytest.raises(ValueError):
         store.add_label("unknown", 1)
+    store.engine.dispose()
 
 
 def test_readiness_without_model(tmp_path):

@@ -9,8 +9,8 @@ stages:
       size: 6067
     - path: fraudline/pipeline.py
       hash: md5
-      md5: aec9c12298091b9f10a63e59ec9f7b19
-      size: 12632
+      md5: 7fec4cd63b95aaff8ad0248281b249c2
+      size: 13369
     outs:
     - path: data
       hash: md5
@@ -31,12 +31,12 @@ stages:
       size: 6067
     - path: fraudline/model.py
       hash: md5
-      md5: e61e603e8a80f746fa8f3da6f69b4ca5
-      size: 2633
+      md5: 53ea790fc0390439ad8d6cd94b48007f
+      size: 2820
     - path: fraudline/pipeline.py
       hash: md5
-      md5: aec9c12298091b9f10a63e59ec9f7b19
-      size: 12632
+      md5: 7fec4cd63b95aaff8ad0248281b249c2
+      size: 13369
     - path: uv.lock
       hash: md5
       md5: d2e783182d37ca4e915bd5f17f8940b7
@@ -44,37 +44,37 @@ stages:
     outs:
     - path: artifacts/models
       hash: md5
-      md5: 749843599ccc1126603ae0dc3a660bc6.dir
-      size: 541826
-      nfiles: 9
+      md5: 6e27f3f2677b1ca871790482c2b62375.dir
+      size: 1189412
+      nfiles: 17
     - path: artifacts/reference.parquet
       hash: md5
       md5: 9f2b0f04b0cfd558b7823ac5891b554c
       size: 143451
     - path: artifacts/registry.json
       hash: md5
-      md5: 638d76278b81b92a6ea717bc539f7b79
-      size: 1654
+      md5: 7fd341c60768f949c885b2804ed9756e
+      size: 2445
     - path: artifacts/reports/latest-training.json
       hash: md5
-      md5: b17ea7f30a6158522c5a0117ece88cdf
+      md5: 0e39f1cab3247fd547bad3ee3c7dec70
       size: 2681
   drift_demo:
     cmd: python -m fraudline.monitor --demo
     deps:
     - path: artifacts/models
       hash: md5
-      md5: 749843599ccc1126603ae0dc3a660bc6.dir
-      size: 541826
-      nfiles: 9
+      md5: 6e27f3f2677b1ca871790482c2b62375.dir
+      size: 1189412
+      nfiles: 17
     - path: artifacts/reference.parquet
       hash: md5
       md5: 9f2b0f04b0cfd558b7823ac5891b554c
       size: 143451
     - path: artifacts/registry.json
       hash: md5
-      md5: 638d76278b81b92a6ea717bc539f7b79
-      size: 1654
+      md5: 7fd341c60768f949c885b2804ed9756e
+      size: 2445
     - path: fraudline/monitor.py
       hash: md5
       md5: ee86eee60f0cdde385841ecc0bef3df2
@@ -82,5 +82,5 @@ stages:
     outs:
     - path: artifacts/reports/demo-drift.json
       hash: md5
-      md5: 33f9f6871842462c119007a2c7eb6656
+      md5: 21e27fa8cb4f1960000d48433e7dc9d2
       size: 2875

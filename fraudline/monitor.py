@@ -82,7 +82,7 @@ def monitor_once(retrain=False):
     )
     reference = pd.read_parquet(ART / "reference.parquet")
     report = drift(reference, current)
-    report["performance"] = store.performance()
+    report["performance"] = store.performance(model.meta["version"])
     report["generated_at"] = datetime.now(timezone.utc).isoformat()
     report["retraining"] = "Not requested"
     report["alerts"] = []

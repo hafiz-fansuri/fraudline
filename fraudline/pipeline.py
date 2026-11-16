@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -331,6 +332,8 @@ def rollback():
 
 
 def main():
+    # MLflow prints emoji URLs; legacy Windows pipe encodings must not abort a completed run.
+    sys.stdout.reconfigure(errors="backslashreplace")
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=["prepare", "train", "demo", "rollback"])
     parser.add_argument("--ieee")

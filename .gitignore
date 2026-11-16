@@ -13,6 +13,7 @@ mlruns/
 *.db-wal
 artifacts/models/
 artifacts/reports/*.html
+artifacts/reports/monitoring.json
 .dvc/cache/
 .dvc/tmp/
 .dvc/config.local
