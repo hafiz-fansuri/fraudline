@@ -77,10 +77,10 @@ stages:
       size: 2445
     - path: fraudline/monitor.py
       hash: md5
-      md5: ee86eee60f0cdde385841ecc0bef3df2
-      size: 5482
+      md5: 3a9ff2d9ce65ed2b989b6e78fe2e1de7
+      size: 5503
     outs:
     - path: artifacts/reports/demo-drift.json
       hash: md5
-      md5: 21e27fa8cb4f1960000d48433e7dc9d2
+      md5: 86ba767d3c87d2d2d5c0bcfba43d697b
       size: 2875
