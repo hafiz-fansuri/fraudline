@@ -20,7 +20,7 @@ Run `python -m fraudline.monitor` or use the Compose monitor (every five minutes
 SQLite serializes local writes; Postgres uses a locked audit-head row. Compose grants the scoring role only insert/select on scoring events and select/update on the audit head. Verify a chain by recomputing SHA-256 over previous digest, UUID, timestamp and exact payload. Hash links do not prevent a database administrator from rewriting the chain. Back up Postgres volumes and store externally signed checkpoints before claiming stronger integrity.
 
 ## Hosted service
-The Render free plan can cold-start and lose its local disk. Store only synthetic/manual illustrative inputs. Do not send actual card numbers, email addresses or personal data. Public demo throttling is single-process and bounded; use an authenticated gateway/shared limiter before multi-worker or production operation.
+The Vercel demo can cold-start and lose its instance-local `/tmp` storage. It loads the verified synthetic bundle through `app.py`. The GNU OpenMP library in `native/` is required by LightGBM on this runtime; keep its attribution and runtime exception with the binary. Store only synthetic/manual illustrative inputs. Do not send actual card numbers, email addresses or personal data. Public demo throttling is single-process and bounded; use an authenticated gateway/shared limiter before multi-worker or production operation.
 
 ## Secrets and shutdown
 Local passwords live in ignored `.env`. Do not paste it into issues. `docker compose down` preserves named data volumes; never use `down -v` unless you intend to remove all local databases. An existing Postgres volume retains its original password; changing `.env` alone does not rotate the database credentials.

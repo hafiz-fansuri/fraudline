@@ -1236,12 +1236,9 @@ dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "pandas" },
-    { name = "pandera", extra = ["pandas"] },
     { name = "prometheus-client" },
     { name = "psycopg", extra = ["binary"] },
-    { name = "pyarrow" },
     { name = "pydantic" },
-    { name = "scikit-learn" },
     { name = "sqlalchemy" },
     { name = "uvicorn" },
 ]
@@ -1249,16 +1246,27 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "httpx" },
+    { name = "pandera", extra = ["pandas"] },
     { name = "pip-audit" },
+    { name = "pyarrow" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "scikit-learn" },
 ]
 ops = [
     { name = "dvc" },
     { name = "evidently" },
     { name = "mlflow" },
     { name = "optuna" },
+    { name = "pandera", extra = ["pandas"] },
+    { name = "pyarrow" },
+    { name = "scikit-learn" },
+]
+train = [
+    { name = "pandera", extra = ["pandas"] },
+    { name = "pyarrow" },
+    { name = "scikit-learn" },
 ]
 
 [package.metadata]
@@ -1272,20 +1280,26 @@ requires-dist = [
     { name = "numpy", specifier = ">=2,<3" },
     { name = "optuna", marker = "extra == 'ops'", specifier = ">=4,<5" },
     { name = "pandas", specifier = ">=2.2,<3" },
-    { name = "pandera", extras = ["pandas"], specifier = ">=0.24,<1" },
+    { name = "pandera", extras = ["pandas"], marker = "extra == 'dev'", specifier = ">=0.24,<1" },
+    { name = "pandera", extras = ["pandas"], marker = "extra == 'ops'", specifier = ">=0.24,<1" },
+    { name = "pandera", extras = ["pandas"], marker = "extra == 'train'", specifier = ">=0.24,<1" },
     { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.8,<3" },
     { name = "prometheus-client", specifier = ">=0.21,<1" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<4" },
-    { name = "pyarrow", specifier = ">=19,<25" },
+    { name = "pyarrow", marker = "extra == 'dev'", specifier = ">=19,<25" },
+    { name = "pyarrow", marker = "extra == 'ops'", specifier = ">=19,<25" },
+    { name = "pyarrow", marker = "extra == 'train'", specifier = ">=19,<25" },
     { name = "pydantic", specifier = ">=2.10,<3" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8,<10" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6,<8" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.11,<1" },
-    { name = "scikit-learn", specifier = ">=1.6,<2" },
+    { name = "scikit-learn", marker = "extra == 'dev'", specifier = ">=1.6,<2" },
+    { name = "scikit-learn", marker = "extra == 'ops'", specifier = ">=1.6,<2" },
+    { name = "scikit-learn", marker = "extra == 'train'", specifier = ">=1.6,<2" },
     { name = "sqlalchemy", specifier = ">=2,<3" },
     { name = "uvicorn", specifier = ">=0.34,<1" },
 ]
-provides-extras = ["ops", "dev"]
+provides-extras = ["train", "ops", "dev"]
 
 [[package]]
 name = "frozenlist"

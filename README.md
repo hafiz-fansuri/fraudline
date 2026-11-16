@@ -2,15 +2,17 @@
 
 A fraud detection MLOps project with a transaction investigation desk: real trained-model predictions, calibrated scores, reason contributions, model lineage and an injected drift demonstration.
 
+[Open the Vercel demo](https://fraudline.vercel.app) · [GitHub Actions](https://github.com/hafiz-fansuri/fraudline/actions)
+
 **Current data is synthetic.** IEEE-CIS data has not been supplied. Synthetic metrics demonstrate the pipeline; they do not establish real fraud detection quality. This is a portfolio demonstration, not a banking service.
 
 ![Fraudline transaction investigation desk](docs/desk-desktop.jpg)
 
 ## Executed verification
 
-The local project has passed 11 tests (71% overall coverage; 90% API and 86% feature/data coverage). The Docker/Postgres path measured warm HTTP p95 at 62.3 ms for 60 requests with four concurrent clients on the documented Windows host. This is a small local benchmark, not a production SLA. See [verification evidence](docs/verification.md).
+The local project has passed 12 tests (71% overall coverage; 90% API and 86% feature/data coverage). The Docker/Postgres path measured warm HTTP p95 at 62.3 ms for 60 requests with four concurrent clients on the documented Windows host. This is a small local benchmark, not a production SLA. See [verification evidence](docs/verification.md).
 
-The complete stack was started and checked. A synthetic traffic exercise produced 600 audited predictions, 200 delayed labels, an Evidently report and a drift alert. A previous model was served after rollback and the original champion was restored. Public Render deployment and GitHub-hosted CI have not run.
+The complete local stack was started and checked. A synthetic traffic exercise produced 600 audited predictions, 200 delayed labels, an Evidently report and a drift alert. A previous model was served after rollback and the original champion was restored. The scoring application and UI are hosted on Vercel; training and scheduled monitoring remain in the local operations stack.
 
 ## Run without Docker
 
@@ -88,9 +90,11 @@ See [runbook](docs/runbook.md), [model card](docs/model-card.md) and [architectu
 
 ## Free hosted demo
 
-`uv run python -m scripts.export_demo` exports only the synthetic champion into `demo-bundle`. The runtime Docker image loads this same model; it never trains at request time. Deploy the repository using `render.yaml`, then disable Render's direct auto-deploy and add a Render deploy hook as GitHub's `RENDER_DEPLOY_HOOK` secret to deploy only after CI passes. Keep hook URLs secret.
+`uv run python -m scripts.export_demo` exports only the synthetic champion into `demo-bundle`. Both Vercel and the Docker image load this same model; neither trains at request time. `app.py` is the Vercel entrypoint and `vercel.json` selects FastAPI. Training-only packages are optional extras, keeping the function small. The bundled OpenMP runtime and its upstream license are documented in `native/NOTICE.md`.
 
-Render Free sleeps when idle and its disk is ephemeral. Hosted audit records can disappear on restart; do not claim persistent compliance logging there. Free quota availability is outside this repository's control. CI configuration is not a green CI run or a deployment until it has actually executed on GitHub.
+The Vercel application is at https://fraudline.vercel.app. To deploy from a checkout linked to your Vercel account, run `npx vercel deploy --prod`. Git integration can deploy new pushes independently of GitHub CI; require deployment checks if you need a strict verification gate. The workflow also supports an optional `VERCEL_DEPLOY_HOOK` secret for a post-verification deployment.
+
+On Vercel, scoring audit records live in writable `/tmp` storage and are isolated to an instance; they can disappear on restart. No shared durable audit log or scheduled monitoring is claimed for the public demo. Use the local Compose stack for that functionality. Free hosting quotas and cold starts apply.
 
 ## Explicit limits
 

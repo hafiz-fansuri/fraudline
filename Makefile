@@ -4,7 +4,7 @@ up:
 down:
 	docker compose down
 demo:
-	uv run python -m fraudline.pipeline demo
+	uv run --extra train python -m fraudline.pipeline demo
 	uv run python -m fraudline.monitor --demo
 	uv run uvicorn fraudline.api:app --host 127.0.0.1 --port 8012
 test:

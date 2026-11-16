@@ -14,16 +14,12 @@ from pathlib import Path
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import average_precision_score, brier_score_loss, roc_auc_score
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
 
 from fraudline.data import FEATURES, INPUTS, features, import_ieee, sha256, split_time, synthetic, validate
 from fraudline.model import Model
 
 ROOT = Path(os.environ.get("FRAUDLINE_HOME", ".")).resolve()
-ART = ROOT / "artifacts"
+ART = Path(os.environ.get("FRAUDLINE_ARTIFACTS", ROOT / "artifacts"))
 
 
 def write_json(path, value):
@@ -70,6 +66,8 @@ def costs(y, p, amount, review, block):
 
 
 def evaluate(frame, p, thresholds):
+    from sklearn.metrics import average_precision_score, brier_score_loss, roc_auc_score
+
     y = frame.is_fraud.to_numpy()
     alert = p >= thresholds["review"]
     metrics = {
@@ -119,6 +117,11 @@ def train(tune=False):
 
 
 def _train(tune=False):
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import average_precision_score
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import StandardScaler
+
     frame = validate(pd.read_parquet(ROOT / "data/transactions.parquet"))
     lineage = json.loads((ROOT / "data/lineage.json").read_text())
     if sha256(ROOT / "data/transactions.parquet") != lineage["data_sha256"]:

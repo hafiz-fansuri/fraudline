@@ -5,6 +5,7 @@ __pycache__/
 htmlcov/
 .ruff_cache/
 .env
+.env*
 data/
 runtime/
 mlruns/
@@ -17,3 +18,7 @@ artifacts/reports/monitoring.json
 .dvc/cache/
 .dvc/tmp/
 .dvc/config.local
+.vercel/
+
+.vercel
+.env*

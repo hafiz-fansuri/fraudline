@@ -5,8 +5,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pandera.pandas as pa
-from pandera import Check
 
 PRODUCTS = ["W", "C", "R", "H", "S"]
 NETWORKS = ["visa", "mastercard", "american express", "discover", "unknown"]
@@ -23,24 +21,26 @@ FEATURES = [
     "distance_missing",
     "identity_present",
 ]
-SCHEMA = pa.DataFrameSchema(
-    {
-        "transaction_id": pa.Column(str, unique=True),
-        "amount": pa.Column(float, Check.in_range(0.01, 1_000_000), coerce=True),
-        "time_offset": pa.Column(int, Check.ge(0), coerce=True),
-        "product": pa.Column(str, Check.isin(PRODUCTS)),
-        "network": pa.Column(str, Check.isin(NETWORKS)),
-        "card_type": pa.Column(str, Check.isin(CARD_TYPES)),
-        "distance": pa.Column(float, Check.in_range(0, 100_000), nullable=True, coerce=True),
-        "identity_present": pa.Column(bool),
-        "is_fraud": pa.Column(int, Check.isin([0, 1]), coerce=True),
-    },
-    strict=False,
-)
 
 
 def validate(frame):
-    SCHEMA.validate(frame, lazy=True)
+    import pandera.pandas as pa
+    from pandera import Check
+
+    pa.DataFrameSchema(
+        {
+            "transaction_id": pa.Column(str, unique=True),
+            "amount": pa.Column(float, Check.in_range(0.01, 1_000_000), coerce=True),
+            "time_offset": pa.Column(int, Check.ge(0), coerce=True),
+            "product": pa.Column(str, Check.isin(PRODUCTS)),
+            "network": pa.Column(str, Check.isin(NETWORKS)),
+            "card_type": pa.Column(str, Check.isin(CARD_TYPES)),
+            "distance": pa.Column(float, Check.in_range(0, 100_000), nullable=True, coerce=True),
+            "identity_present": pa.Column(bool),
+            "is_fraud": pa.Column(int, Check.isin([0, 1]), coerce=True),
+        },
+        strict=False,
+    ).validate(frame, lazy=True)
     if len(frame) < 200 or frame.is_fraud.nunique() != 2:
         raise ValueError("Training needs at least 200 rows and both label classes")
     return frame.sort_values(["time_offset", "transaction_id"]).reset_index(drop=True)

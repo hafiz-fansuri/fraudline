@@ -31,6 +31,10 @@ The runtime image measured 878,439,078 bytes before final small source/documenta
 
 The inference dependency audit reported no known vulnerabilities at the time of execution. The optional DVC environment contains an unpatched diskcache advisory; see dependency-notes.md. The full environment is not reported as vulnerability-free.
 
-IEEE-CIS files have not been supplied, so there are no real-dataset metrics. Browser inspection of Render reached its sign-in page: no authenticated Render session was available. Account existence cannot be inferred from that. No public deployment, external alert delivery or GitHub-hosted CI success is claimed. CI and Render configuration are included for those next steps.
+IEEE-CIS files have not been supplied, so there are no real-dataset metrics. External alert delivery has not been exercised.
+
+## Vercel deployment update
+
+The project now includes a slim Vercel FastAPI deployment. Twelve local tests passed after the adapter changes, with 71% overall coverage. The public `/ready` endpoint returned HTTP 200 with the verified synthetic model version and `audit_storage: ephemeral`. The required native OpenMP library is included with attribution. See the GitHub Actions page for the independently executed CI status; local test results are not substituted for it.
 
 The test runner emitted an upstream Starlette/httpx deprecation warning. The runnable project does not depend on replacing the test transport today.

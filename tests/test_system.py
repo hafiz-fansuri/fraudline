@@ -1,5 +1,6 @@
 import hashlib
 import json
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -161,6 +162,27 @@ def test_readiness_without_model(tmp_path):
     with TestClient(create_app(tmp_path / "missing", f"sqlite:///{tmp_path / 'events.db'}")) as client:
         assert client.get("/health").status_code == 200
         assert client.get("/ready").status_code == 503
+
+
+def test_hosted_bundle_uses_temporary_storage(monkeypatch, tmp_path):
+    import importlib
+
+    import app as entrypoint
+
+    monkeypatch.setattr(entrypoint.ctypes, "CDLL", lambda *args, **kwargs: None)
+
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("FRAUDLINE_HOME", str(Path.cwd()))
+    monkeypatch.setenv("FRAUDLINE_ARTIFACTS", str(Path("demo-bundle").resolve()))
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'vercel-events.db'}")
+    importlib.reload(entrypoint)
+    from fraudline.api import create_app
+
+    bundle = next(Path("demo-bundle/models").iterdir())
+    with TestClient(create_app(bundle, f"sqlite:///{tmp_path / 'vercel-events.db'}")) as client:
+        assert client.get("/ready").json()["audit_storage"] == "ephemeral"
+        sample = client.get("/api/samples").json()["transactions"][0]
+        assert client.post("/predict", json=sample).status_code == 200
 
 
 def test_failed_audit_is_counted_as_server_error(bundle, tmp_path, monkeypatch):

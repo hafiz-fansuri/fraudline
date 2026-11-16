@@ -103,6 +103,7 @@ async function init() {
   $('#play').disabled = true; $('#step').disabled = true;
   try {
     const ready = await api('/ready'); $('#model-version').textContent = ready.model_version;
+    if (ready.audit_storage === 'ephemeral') $('.desk-context p').textContent = 'This hosted demo scores synthetic and illustrative transactions. Audit records use temporary instance storage. Training, durable audit logging, and scheduled monitoring run in the local Docker stack.';
     $('#model-source').textContent = `${ready.data_source} training / verified bundle`; $('#connection').textContent = 'Scoring service connected';
     const [sampleData, model] = await Promise.all([api('/api/samples'),api('/api/model')]);
     state.samples = sampleData.transactions; state.model = model; renderModels();

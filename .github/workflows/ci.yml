@@ -16,7 +16,7 @@ jobs:
           python-version: "3.13"
           enable-cache: true
       - run: uv sync --frozen --extra dev --extra ops
-      - run: uv run ruff check fraudline tests scripts
+      - run: uv run ruff check fraudline app.py tests scripts
       - run: uv run pytest --cov=fraudline --cov-report=xml
       - run: uv run python -m fraudline.pipeline demo --rows 6000
       - run: uv run python -m fraudline.monitor --demo
@@ -43,12 +43,12 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: Deploy verified main branch through Render
+      - name: Deploy verified main branch through Vercel
         env:
-          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
         run: |
-          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
-            echo 'No deployment hook configured; verified source remains undeployed.'
+          if [ -z "$VERCEL_DEPLOY_HOOK" ]; then
+            echo 'No CI deploy hook configured; use the connected Vercel Git deployment.'
             exit 0
           fi
-          curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK"
+          curl --fail --silent --show-error --request POST "$VERCEL_DEPLOY_HOOK"

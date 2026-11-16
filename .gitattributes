@@ -2,3 +2,4 @@
 demo-bundle/**/model.txt -text
 *.jpg binary
 *.png binary
+*.so* binary

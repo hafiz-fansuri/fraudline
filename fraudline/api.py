@@ -127,6 +127,7 @@ def create_app(model_path=None, database_url=None):
             "status": "ready",
             "model_version": model.meta["version"],
             "data_source": model.meta["data_source"],
+            "audit_storage": "ephemeral" if os.environ.get("VERCEL") else "local",
         }
 
     def score(transactions):
