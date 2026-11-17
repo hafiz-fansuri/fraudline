@@ -72,7 +72,15 @@ The initial per-group pandas write path was too slow at full scale; preparation 
 
 Public Vercel runs inference with an exported, hash-verified IEEE bundle. Raw CSVs, Parquet references, local run folders and secrets are excluded from Git, Docker context and Vercel upload. Public audit storage is ephemeral. Full monitoring/MLflow/Postgres remain optional local operations; they were not re-benchmarked as part of this model experiment.
 
-The local browser scenario workflow passed 11/11 checks before the model swap. Final public deployment and responsive verification are recorded below after release.
+The local browser scenario workflow passed 11/11 checks with the IEEE model. Desktop (1440px) and mobile (390px) layouts were inspected. Mobile testing found grid overflow; shrinkable grid columns fixed it. The final 390px check showed no page-wide horizontal overflow. Navigation, model evidence and the full learning guide were inspected; Operations retains monitoring/metrics access. See `ieee-workbench.jpg` for the verified interface.
+
+## Public release verification
+
+Published to [fraudline.vercel.app](https://fraudline.vercel.app), Vercel deployment `dpl_EeVJc5c12ayvDcvXAsMynbsttSZD`, serving model `fl-20261117072348-496b08`. Public `/ready` returned 200, source `ieee-cis`, and ephemeral audit storage. `/api/model` confirmed 54 features. The guide, downloadable Markdown, API reference, JavaScript and stylesheet returned 200.
+
+All eleven authored synthetic scenarios were also scored through the public production batch endpoint: 11/11 expected-factor checks passed. The baseline approved; impossible travel blocked; the remaining stress cases requested review through explicit controls. An invalid negative amount returned 422. These are synthetic policy/serving checks, not a fraud-accuracy benchmark.
+
+[GitHub verification for the implementation](https://github.com/hafiz-fansuri/fraudline/actions/runs/44042139861) completed successfully: regression tests, committed IEEE bundle/scenario checks, synthetic lifecycle smoke run, inference dependency audit and Docker build. Heavy training remains local; the original full Docker operations stack was not restarted or re-benchmarked for this release.
 
 ## Learning materials
 
