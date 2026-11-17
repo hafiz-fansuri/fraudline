@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="864pt" height="201.6pt" viewBox="0 0 864 201.6" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-11-17T16:50:26.987766</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 201.6 
+L 864 201.6 
+L 864 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 30.24 139.104 
+L 480.840067 139.104 
+L 480.840067 86.688 
+L 30.24 86.688 
+z
+" clip-path="url(#p4a39c9423d)" style="fill: #17665a; stroke: #ffffff; stroke-width: 2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 480.840067 139.104 
+L 603.252616 139.104 
+L 603.252616 86.688 
+L 480.840067 86.688 
+z
+" clip-path="url(#p4a39c9423d)" style="fill: #4c678c; stroke: #ffffff; stroke-width: 2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 603.252616 139.104 
+L 724.939299 139.104 
+L 724.939299 86.688 
+L 603.252616 86.688 
+z
+" clip-path="url(#p4a39c9423d)" style="fill: #956c2a; stroke: #ffffff; stroke-width: 2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 724.939299 139.104 
+L 846.72 139.104 
+L 846.72 86.688 
+L 724.939299 86.688 
+z
+" clip-path="url(#p4a39c9423d)" style="fill: #763e70; stroke: #ffffff; stroke-width: 2; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_1">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #ffffff" transform="translate(243.54394 109.49307)">Train</text>
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #ffffff" transform="translate(221.575971 121.495023)">325,908 rows</text>
+   </g>
+   <g id="text_2">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #ffffff" transform="translate(514.841654 109.49307)">Calibration</text>
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #ffffff" transform="translate(511.263529 121.495023)">88,538 rows</text>
+   </g>
+   <g id="text_3">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #ffffff" transform="translate(638.656895 109.49307)">Promotion</text>
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #ffffff" transform="translate(633.313145 121.495023)">88,013 rows</text>
+   </g>
+   <g id="text_4">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #ffffff" transform="translate(762.871837 109.49307)">Final Test</text>
+    <text style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #ffffff" transform="translate(755.046837 121.495023)">88,081 rows</text>
+   </g>
+  </g>
+  <g id="text_5">
+   <text style="font-weight: 700; font-size: 16px; font-family: 'DejaVu Sans'; text-anchor: start" x="30.24" y="30.24" transform="rotate(-0 30.24 30.24)">Chronological split: earlier events → later events</text>
+  </g>
+  <g id="text_6">
+   <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #53616c" x="30.24" y="56.448" transform="rotate(-0 30.24 56.448)">All 590,540 labeled rows are used across separate intervals; only the first interval fits the trees.</text>
+  </g>
+  <g id="text_7">
+   <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #53616c" x="30.24" y="181.44" transform="rotate(-0 30.24 181.44)">Split on distinct timestamps. History uses strictly earlier events only; final test labels never fit the model.</text>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p4a39c9423d">
+   <rect x="30.24" y="64.512" width="816.48" height="96.768"/>
+  </clipPath>
+ </defs>
+</svg>
