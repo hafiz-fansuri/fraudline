@@ -307,6 +307,10 @@ def create_app(model_path=None, database_url=None):
 
     @app.get("/")
     def index():
+        return FileResponse(static / "client.html")
+
+    @app.get("/workbench", include_in_schema=False)
+    def workbench():
         return FileResponse(static / "index.html")
 
     @app.get("/docs", include_in_schema=False)

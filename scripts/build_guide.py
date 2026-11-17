@@ -13,7 +13,7 @@ body = MarkdownIt("commonmark", {"html": False}).enable("table").render(source.r
     '<!doctype html><html lang="en"><head><meta charset="UTF-8">'
     '<meta name="viewport" content="width=device-width,initial-scale=1">'
     '<title>Fraudline — A–Z learning guide</title><link rel="stylesheet" href="/assets/style.css?v=20261117-2">'
-    '</head><body><main class="guide"><a href="/#learn">← Back to the workbench</a>'
+    '</head><body><main class="guide"><a href="/workbench#learn">← Back to the workbench</a>'
     '<p><a href="/assets/learning-guide.md" download>Download Markdown guide</a></p>'
     + body
     + "</main></body></html>",

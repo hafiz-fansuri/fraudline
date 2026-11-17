@@ -286,6 +286,8 @@ The optional Docker Compose stack is heavier. Its default artifact/data mounts s
 
 ## U. The UI/UX choices
 
+There are now two independent interfaces sharing one prediction API. The public homepage (`/`) serves `client.html`, `client.css` and `client.js`: a minimal neon-on-dark client experience with an HX footer signature. It provides guided examples, editable details, plain-language outcomes, suggested next steps, three browser-memory-only recent checks, and a downloadable text summary. Changing input clears the old result. The previous technical interface is preserved at `/workbench`, and this guide links back there. A separate route is not authentication; neither site is a private customer account.
+
 The redesign uses the installed UI/UX Pro Max guidance for a data-dense financial workbench: dark navigation rail, neutral canvas, teal interaction states, and amber/red review/block meanings. Text accompanies color so status remains understandable without color perception.
 
 The main sequence is choose a case, inspect input, edit limited fields, analyze, inspect receipt. Detailed JSON/history are progressively disclosed. Model evidence and signal coverage stay separate so prominent scores do not hide unsupported assumptions.

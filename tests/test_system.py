@@ -145,6 +145,9 @@ def test_api_contract(bundle, tmp_path):
     with TestClient(create_app(bundle, db)) as client:
         assert client.get("/ready").status_code == 200
         assert client.get("/").status_code == 200
+        assert "client.js" in client.get("/").text
+        assert "app.js" in client.get("/workbench").text
+        assert "client.js" not in client.get("/workbench").text
         sample = client.get("/api/samples").json()["transactions"][0]
         response = client.post("/predict", json=sample)
         assert response.status_code == 200

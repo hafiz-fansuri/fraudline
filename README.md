@@ -4,6 +4,12 @@ A fraud detection MLOps project with a transaction investigation desk: real trai
 
 [Open the Vercel demo](https://fraudline.vercel.app) · [GitHub Actions](https://github.com/hafiz-fansuri/fraudline/actions)
 
+The main URL now opens the neon-on-dark client experience: guided examples, plain-language outcomes, next steps, recent checks and downloadable summaries. The existing owner investigation interface remains at [the workbench](https://fraudline.vercel.app/workbench). Separate routes do not provide authentication; both are educational demonstrations.
+
+[Client design and verification](docs/client-experience.md)
+
+![Client-facing Fraudline experience](docs/client-desktop.jpg)
+
 **The model is trained on the supplied IEEE-CIS dataset:** 590,540 labeled transactions with past-only history features. The public scenario lab uses authored synthetic inputs. This is an educational portfolio workbench, not a banking authorization service.
 
 [A–Z learning guide](docs/learning-guide.md) · [Actual training code](fraudline/pipeline.py) · [IEEE verification](docs/ieee-verification.md) · [Model card](docs/model-card.md)
