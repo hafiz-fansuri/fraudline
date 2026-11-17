@@ -1,15 +1,294 @@
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Fraudline — a synthetic fraud detection and MLOps investigation desk."><title>Fraudline — Transaction desk</title><link rel="stylesheet" href="/assets/style.css"><script src="/assets/app.js" defer></script></head>
-<body><header class="masthead"><a class="wordmark" href="/" aria-label="Fraudline home"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 4h26v6H9v6h16v6H9v7H3z"/></svg>fraudline<span>Decision intelligence</span></a><span class="environment">Synthetic data demonstration</span><a href="/docs" class="api-link">API reference</a></header>
-<main class="shell"><div class="intro"><div><h1>A closer look at risk.</h1><p>Follow the transaction. Inspect the decision. Trace the model.</p></div><div class="model-stamp"><span>Serving model</span><strong id="model-version">Connecting…</strong><span id="model-source">Verifying the model bundle</span></div></div>
-<nav class="tabs" aria-label="Workspace"><button aria-current="page" data-view="desk">Transaction desk</button><button data-view="models">Model lineage</button><button data-view="drift">Drift lab</button><button data-view="monitoring">Monitoring</button></nav>
-<div id="notice" role="status" aria-live="polite" hidden></div>
-<section id="desk" class="view"><div class="desk-top"><div><h2>Transaction ledger <span id="ledger-count">0</span></h2><p>Seeded replay. Every score comes from the trained model.</p></div><div class="replay-controls"><label class="speed-label">Replay speed<select id="speed"><option value="1600">1× speed</option><option value="800">2× speed</option></select></label><button id="step" class="secondary">Next transaction</button><button id="play" class="primary"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m5 3 7 5-7 5z"/></svg><span>Play replay</span></button></div></div>
-<div class="desk-grid"><div class="ledger-column"><div class="ledger-scroll"><table class="ledger"><thead><tr><th>Transaction</th><th>Amount</th><th>Risk</th><th>Decision</th><th><span class="sr-only">Inspect</span></th></tr></thead><tbody id="transactions"><tr><td colspan="5" class="empty">Loading the model and synthetic transactions…</td></tr></tbody></table></div><div class="ledger-foot"><span id="observed">No predictions yet</span><span>USD / synthetic amounts</span></div>
-<details class="manual"><summary>Score your own test transaction</summary><form id="score-form"><p>Use illustrative values only. No card numbers or personal information.</p><div class="form-grid"><label>Amount (USD)<input name="amount" type="number" min="0.01" max="1000000" step="0.01" value="249" required></label><label>Distance<input name="distance" type="number" min="0" max="100000" step="0.1" value="280"></label><label>Product<select name="product"><option>W</option><option>C</option><option>R</option><option>H</option><option>S</option></select></label><label>Card network<select name="network"><option>visa</option><option>mastercard</option><option>american express</option><option>discover</option><option>unknown</option></select></label><label>Card type<select name="card_type"><option>debit</option><option>credit</option><option>unknown</option></select></label><label>Hour of day<input name="hour" type="number" min="0" max="23" value="2" required></label></div><label class="checkbox"><input name="identity" type="checkbox" checked>Identity information available</label><button class="primary" type="submit">Score transaction</button><p id="form-error" role="alert"></p></form></details></div>
-<aside class="receipt" aria-label="Selected transaction decision"><div class="receipt-head"><span>Decision receipt</span><span id="receipt-number">Awaiting selection</span></div><div id="receipt-content"><h2>Select a transaction.</h2><p>Its score, thresholds, and model reasoning appear here.</p></div><div class="receipt-note">Model explanations describe associations. They do not prove why a transaction is fraudulent.</div></aside></div>
-<div class="desk-context"><span class="context-title">What you’re looking at</span><p>A working ML lifecycle, replayed with synthetic transactions. Scores come from LightGBM; decisions use cost-tuned thresholds. No real payments are processed.</p><a href="#" id="lineage-link">Inspect training evidence</a></div></section>
-<section id="models" class="view" hidden><div class="section-title"><h2>The evidence behind the model.</h2><p>Actual training artifacts, chronological evaluation, and promotion history.</p></div><div id="model-content" class="evidence-layout"><p>Loading training evidence…</p></div></section>
-<section id="drift" class="view" hidden><div class="section-title"><h2>When the pattern changes.</h2><p>Compare an independent synthetic sample with an intentionally shifted one.</p></div><div class="scenario-controls"><button class="primary" data-scenario="reference" aria-pressed="true">Reference scenario</button><button class="secondary" data-scenario="shifted" aria-pressed="false">Inject synthetic drift</button></div><div id="drift-content" class="drift-layout"><p>Loading computed drift reports…</p></div><p class="footnote">These are precomputed demonstration reports. This control does not retrain or promote a model.</p></section>
-<section id="monitoring" class="view" hidden><div class="section-title"><h2>Watch the service, not just the score.</h2><p>Scheduled monitoring uses recorded requests. Delayed labels establish performance.</p></div><button id="refresh-monitoring" class="secondary">Refresh report</button><div id="monitoring-content" class="monitoring-content"></div><a class="text-link" href="/metrics">Open Prometheus metrics</a></section>
-</main><footer><span>Built by Hafiz Hamzah</span><span>Reproducible training. Inspectable decisions.</span><span id="connection">Connecting to scoring service</span></footer><noscript><p class="no-script">JavaScript is required for interactive scoring. The API is available at /docs.</p></noscript></body></html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      name="description"
+      content="Fraudline: an IEEE-CIS trained fraud investigation workbench with transparent model evidence and synthetic risk scenarios."
+    />
+    <title>Fraudline — Risk workbench</title>
+    <link rel="stylesheet" href="/assets/style.css?v=20261117-2" />
+    <script src="/assets/app.js?v=20261117-2" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to workspace</a>
+    <aside class="rail">
+      <a href="/" class="brand"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M4 4h24v6H10v6h14v6H10v7H4z" /></svg
+        >fraudline<span>RISK INTELLIGENCE</span></a
+      >
+      <div class="rail-label">WORKSPACE</div>
+      <nav aria-label="Workspace">
+        <button data-view="investigate" aria-current="page">
+          <span>01</span> Investigation</button
+        ><button data-view="evidence"><span>02</span> Model evidence</button
+        ><button data-view="coverage"><span>03</span> Signal coverage</button
+        ><button data-view="learn"><span>04</span> Learn the system</button
+        ><button data-view="operations"><span>05</span> Operations</button>
+      </nav>
+      <div class="rail-note">
+        <span class="dot"></span> EDUCATIONAL SANDBOX
+        <p>
+          Real benchmark training.<br />Synthetic test transactions.<br />No
+          payments processed.
+        </p>
+        <a
+          href="https://github.com/hafiz-fansuri/fraudline"
+          target="_blank"
+          rel="noreferrer"
+          >Source repository ↗</a
+        >
+      </div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar">
+        <span
+          >FRAUD OPERATIONS <b>/</b>
+          <span id="breadcrumb">Investigation</span></span
+        ><a href="/docs">API reference ↗</a>
+      </header>
+      <main id="main">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">FOLLOW THE SIGNAL</p>
+            <h1 id="page-title">Every decision has a story.</h1>
+            <p id="page-description">
+              Explore synthetic cases. Separate model evidence from contextual
+              controls.
+            </p>
+          </div>
+          <div class="connection">
+            <span class="dot"></span
+            ><span id="connection">Verifying model…</span>
+          </div>
+        </div>
+        <div id="notice" role="status" aria-live="polite" hidden></div>
+        <div class="stats" id="stats">
+          <div><span>TRAINING SOURCE</span><strong>Loading…</strong></div>
+        </div>
+        <section class="view" id="investigate">
+          <div class="workbench">
+            <aside class="scenario-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">SCENARIO LAB</p>
+                  <h2>Choose a case</h2>
+                </div>
+                <span class="count">11</span>
+              </div>
+              <p class="muted">Authored examples, never customer data.</p>
+              <label class="search-label"
+                >Find a scenario<input
+                  id="search"
+                  type="search"
+                  placeholder="Amount, device, travel…"
+              /></label>
+              <div id="scenario-list" class="scenario-list">
+                <p>Loading scenarios…</p>
+              </div>
+            </aside>
+            <div class="case-column">
+              <article class="case-card">
+                <div class="panel-heading">
+                  <span class="eyebrow">SELECTED TRANSACTION</span
+                  ><span class="tag">SYNTHETIC</span>
+                </div>
+                <h2 id="case-title">Choose a scenario</h2>
+                <p id="case-description" class="muted">
+                  Each case includes illustrative transaction history.
+                </p>
+                <div class="transaction-facts" id="transaction-facts"></div>
+                <form id="score-form">
+                  <div class="input-row">
+                    <label
+                      >Amount (USD)<input
+                        id="amount"
+                        type="number"
+                        min="0.01"
+                        max="1000000"
+                        step="0.01"
+                        required /></label
+                    ><label
+                      >Device type<select id="device">
+                        <option value="desktop">Desktop</option>
+                        <option value="mobile">Mobile</option>
+                        <option value="unknown">Unknown</option>
+                      </select></label
+                    ><button type="submit" class="primary" id="score">
+                      Analyze transaction <span>↗</span>
+                    </button>
+                  </div>
+                </form>
+                <details>
+                  <summary>Inspect the complete synthetic input</summary>
+                  <pre id="payload"></pre>
+                </details>
+              </article>
+              <article id="decision" class="decision-card" aria-live="polite">
+                <div class="empty-mark">↗</div>
+                <h2>Ready to investigate.</h2>
+                <p>
+                  Select a case and analyze the transaction to see its model
+                  score, policy signals, and final decision.
+                </p>
+              </article>
+            </div>
+          </div>
+          <section class="run-panel">
+            <div>
+              <p class="eyebrow">END-TO-END CHECK</p>
+              <h2>Put all 11 cases through the system.</h2>
+              <p class="muted">
+                Tests expected signal activation. This does not measure
+                real-world fraud accuracy.
+              </p>
+            </div>
+            <button id="run-all" class="secondary">Run scenario suite</button>
+            <div id="suite-result" role="status"></div>
+          </section>
+          <div class="panel ledger-panel">
+            <div class="panel-heading">
+              <h2>Investigation history</h2>
+              <label
+                >Decision
+                <select id="filter">
+                  <option value="all">All decisions</option>
+                  <option>approve</option>
+                  <option>review</option>
+                  <option>block</option>
+                </select></label
+              >
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Case</th>
+                    <th>Amount</th>
+                    <th>Model probability</th>
+                    <th>Final decision</th>
+                    <th>Context signals</th>
+                  </tr>
+                </thead>
+                <tbody id="ledger">
+                  <tr>
+                    <td colspan="5" class="muted">
+                      Your scored scenarios appear here.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+        <section class="view" id="evidence" hidden>
+          <div id="model-content" class="panel">Loading evaluated model…</div>
+        </section>
+        <section class="view" id="coverage" hidden>
+          <div class="section-intro">
+            <h2>Nine factors. Honest boundaries.</h2>
+            <p>
+              The benchmark cannot teach signals it does not contain. Trained
+              features and contextual controls are identified separately.
+            </p>
+          </div>
+          <div id="factor-grid" class="factor-grid"></div>
+        </section>
+        <section class="view" id="learn" hidden>
+          <div class="learning-grid">
+            <article class="panel learning-intro">
+              <p class="eyebrow">FROM RAW ROWS TO DECISIONS</p>
+              <h2>Understand every step.</h2>
+              <p>
+                A complete guide to the data, feature engineering, training,
+                evaluation, controls, interface, deployment, and limitations.
+              </p>
+              <a class="primary link-button" href="/guide"
+                >Read the A–Z guide ↗</a
+              ><a class="text-link" href="/assets/learning-guide.md" download
+                >Download the full guide (.md)</a
+              ><a
+                class="text-link"
+                href="https://github.com/hafiz-fansuri/fraudline/blob/main/fraudline/pipeline.py"
+                target="_blank"
+                rel="noreferrer"
+                >Open the actual training file ↗</a
+              >
+            </article>
+            <div class="pipeline">
+              <div>
+                <b>01</b>
+                <h3>Prepare</h3>
+                <p>
+                  Join the two IEEE files. Validate rows. Build history using
+                  only earlier events.
+                </p>
+                <code>data.py + history.py</code>
+              </div>
+              <div>
+                <b>02</b>
+                <h3>Train & calibrate</h3>
+                <p>
+                  Fit LightGBM, calibrate probabilities, and choose cost-based
+                  decision thresholds.
+                </p>
+                <code>pipeline.py → _train()</code>
+              </div>
+              <div>
+                <b>03</b>
+                <h3>Evaluate</h3>
+                <p>
+                  Compare against logistic regression on a later, untouched time
+                  interval.
+                </p>
+                <code>evaluation.json</code>
+              </div>
+              <div>
+                <b>04</b>
+                <h3>Score & explain</h3>
+                <p>
+                  Calculate a model probability, apply explicit controls, and
+                  write an audit record.
+                </p>
+                <code>model.py + signals.py + api.py</code>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="view" id="operations" hidden>
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">SERVICE HEALTH</p>
+                <h2>Observe the system.</h2>
+              </div>
+              <button id="refresh-operations" class="secondary">
+                Refresh reports
+              </button>
+            </div>
+            <p class="muted">
+              Vercel serves inference; scheduled monitoring and durable storage
+              belong to the local operations stack.
+            </p>
+            <div id="operations-content"></div>
+            <a class="text-link" href="/metrics">Open Prometheus metrics ↗</a
+            ><a class="text-link" href="/api/monitoring"
+              >Inspect the complete monitoring report ↗</a
+            >
+          </article>
+        </section>
+        <footer>
+          <span>Built by Hafiz Hamzah</span
+          ><span>Inspectable models. Explainable boundaries.</span
+          ><span id="model-version"></span>
+        </footer>
+      </main>
+    </div>
+    <noscript
+      >Enable JavaScript to investigate cases. The learning guide is available
+      at <a href="/guide">/guide</a>.</noscript
+    >
+  </body>
+</html>

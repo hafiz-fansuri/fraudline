@@ -1,120 +1,372 @@
-const $ = selector => document.querySelector(selector);
-const state = { samples: [], rows: [], cursor: 0, selected: null, playing: false, timer: null, busy: false, model: null, drift: null };
-const money = value => new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'}).format(value);
-const percent = value => `${(value * 100).toFixed(1)}%`;
-const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const labels = {log_amount:'Transaction amount', hour_sin:'Time of day (sin)', hour_cos:'Time of day (cos)', product:'Product category', network:'Card network', card_type:'Card type', log_distance:'Transaction distance', distance_missing:'Distance missing', identity_present:'Identity available'};
-
+const $ = (s) => document.querySelector(s);
+const esc = (value) =>
+  String(value).replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
+const pct = (n) => `${(n * 100).toFixed(1)}%`;
+const money = (n) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
+    n,
+  );
+const state = { cases: [], selected: null, rows: [], busy: false };
 async function api(path, body) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
-  try {
-    const response = await fetch(path, {signal: controller.signal, ...(body ? {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)} : {})});
-    const result = await response.json();
-    if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'The request was rejected. Check the input values.');
-    return result;
-  } catch (error) {
-    if (error.name === 'AbortError') throw new Error('The scoring service timed out. It may be waking up; try again shortly.');
-    throw error;
-  } finally { clearTimeout(timeout); }
+  const response = await fetch(path, {
+    ...(body
+      ? {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      : {}),
+    signal: AbortSignal.timeout(60000),
+  });
+  const data = await response.json();
+  if (!response.ok)
+    throw Error(
+      typeof data.detail === "string"
+        ? data.detail
+        : "Input rejected. Check the supplied values.",
+    );
+  return data;
 }
-function notice(message) { $('#notice').textContent = message; $('#notice').hidden = !message; }
+function notice(text) {
+  $("#notice").textContent = text;
+  $("#notice").hidden = !text;
+}
+const pages = {
+  operations: [
+    "Operations",
+    "Watch the service and its inputs.",
+    "Monitoring needs recorded traffic and delayed labels; drift alone is not accuracy.",
+  ],
+  investigate: [
+    "Investigation",
+    "Every decision has a story.",
+    "Explore synthetic cases. Separate model evidence from contextual controls.",
+  ],
+  evidence: [
+    "Model evidence",
+    "Trust is built on evidence.",
+    "Actual training artifacts, chronological evaluation, and a reproducible model bundle.",
+  ],
+  coverage: [
+    "Signal coverage",
+    "Know what the system knows.",
+    "A clear boundary between trained patterns and explicit contextual controls.",
+  ],
+  learn: [
+    "Learn the system",
+    "From data to understanding.",
+    "Follow the implementation, the decisions, and the reasons behind them.",
+  ],
+};
 function show(view) {
-  if (view !== 'desk') pause();
-  document.querySelectorAll('.view').forEach(section => section.hidden = section.id !== view);
-  document.querySelectorAll('[data-view]').forEach(button => { if (button.dataset.view === view) button.setAttribute('aria-current','page'); else button.removeAttribute('aria-current'); });
-  if (view === 'monitoring') refreshMonitoring();
+  if (view === "operations") renderOperations();
+  if (!pages[view]) view = "investigate";
+  document
+    .querySelectorAll(".view")
+    .forEach((el) => (el.hidden = el.id !== view));
+  document.querySelectorAll("[data-view]").forEach((el) => {
+    if (el.dataset.view === view) el.setAttribute("aria-current", "page");
+    else el.removeAttribute("aria-current");
+  });
+  $("#breadcrumb").textContent = pages[view][0];
+  $("#page-title").textContent = pages[view][1];
+  $("#page-description").textContent = pages[view][2];
+  window.scrollTo(0, 0);
 }
-document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => show(button.dataset.view)));
-$('#lineage-link').addEventListener('click', event => {event.preventDefault(); show('models');});
-
+document.querySelectorAll("[data-view]").forEach((b) =>
+  b.addEventListener("click", () => {
+    location.hash = b.dataset.view;
+  }),
+);
+window.addEventListener("hashchange", () => show(location.hash.slice(1)));
+show(location.hash.slice(1));
+function renderCases() {
+  const q = $("#search").value.toLowerCase();
+  const filtered = state.cases.filter((c) =>
+    `${c.title} ${c.description}`.toLowerCase().includes(q),
+  );
+  $("#scenario-list").innerHTML =
+    filtered
+      .map(
+        (c) =>
+          `<button class="scenario-button" data-case="${esc(c.id)}" aria-pressed="${state.selected?.id === c.id}"><span>${String(state.cases.indexOf(c) + 1).padStart(2, "0")}</span><strong>${esc(c.title)}</strong><small>${esc(c.expected_factor || "Baseline behaviour")}</small></button>`,
+      )
+      .join("") || '<p class="muted">No matching scenarios.</p>';
+  document
+    .querySelectorAll("[data-case]")
+    .forEach((b) =>
+      b.addEventListener("click", () => selectCase(b.dataset.case)),
+    );
+}
+function selectCase(id) {
+  state.selected = state.cases.find((c) => c.id === id);
+  const c = state.selected,
+    t = c.transaction;
+  $("#case-title").textContent = c.title;
+  $("#case-description").textContent = c.description;
+  $("#amount").value = t.amount;
+  $("#device").value = t.device_type;
+  $("#payload").textContent = JSON.stringify(t, null, 2);
+  $("#transaction-facts").innerHTML = [
+    ["ACCOUNT", t.account_id],
+    ["PRIOR EVENTS", t.history.length],
+    ["PRODUCT / CARD", `${t.product} / ${t.network}`],
+    ["EXPECTED SIGNAL", c.expected_factor || "None"],
+  ]
+    .map(
+      ([a, b]) => `<div><span>${esc(a)}</span><strong>${esc(b)}</strong></div>`,
+    )
+    .join("");
+  renderCases();
+  $("#decision").innerHTML =
+    '<div class="empty-mark">↗</div><h2>Ready to investigate.</h2><p>Analyze this case to see the model probability and contextual signals. Editing the amount or device changes this request only.</p>';
+}
+$("#search").addEventListener("input", renderCases);
+function renderDecision(row) {
+  const { result: r, input: t, title } = row;
+  const max = Math.max(
+    ...r.reasons.map((x) => Math.abs(x.contribution)),
+    0.001,
+  );
+  $("#decision").innerHTML =
+    `<div class="decision-top"><div><span class="eyebrow">FINAL DECISION</span><h2>${r.decision === "approve" ? "Approve" : r.decision === "review" ? "Manual review" : "Block transaction"}</h2><span class="status ${esc(r.decision)}">${esc(r.decision)}</span></div><div><div class="score-number">${(r.probability * 100).toFixed(1)}<small>%</small></div><div class="score-note">Calibrated ML probability<br>Context controls do not change this number</div></div></div><div class="probability-track"><i data-width="${r.probability * 100}"></i></div><div class="threshold-labels"><span>0%</span><span>Review ≥ ${pct(r.thresholds.review)}</span><span>Block ≥ ${pct(r.thresholds.block)}</span><span>100%</span></div><div class="decision-explainer">Model decision: <strong>${esc(r.model_decision)}</strong> · ${r.signals.length} contextual signal${r.signals.length === 1 ? "" : "s"} · Final decision takes the most restrictive outcome.</div><div class="explanation-columns"><div><h3>What influenced the model</h3><p class="muted">Top TreeSHAP contributions in raw log-odds. Associations, not causes.</p>${r.reasons.map((x) => `<div class="reason"><div class="reason-label"><span>${esc(x.label)}</span><span>${x.contribution > 0 ? "+" : ""}${x.contribution.toFixed(3)}</span></div><div class="reason-track"><i class="${esc(x.direction)}" data-width="${(Math.abs(x.contribution) / max) * 100}"></i></div></div>`).join("")}</div><div><h3>Contextual controls</h3><p class="muted">Explicit policies applied to supplied history and context.</p>${r.signals.map((x) => `<div class="signal"><strong>${esc(x.title)} · ${esc(x.decision)}</strong><p>${esc(x.evidence)}</p></div>`).join("") || '<p class="muted">No contextual control was activated.</p>'}</div></div><details><summary>Computed history features</summary><pre>${esc(JSON.stringify(r.history_features, null, 2))}</pre></details><div class="receipt-meta"><span>${esc(title)} · ${money(t.amount)}</span><span>Audit ${esc(r.prediction_id.slice(0, 14))}</span><span>${esc(r.model_version)}</span></div>`;
+  document
+    .querySelectorAll("[data-width]")
+    .forEach((el) => (el.style.width = `${el.dataset.width}%`));
+}
 function renderLedger() {
-  $('#ledger-count').textContent = String(state.rows.length).padStart(2,'0');
-  $('#transactions').innerHTML = [...state.rows].reverse().map(row => {
-    const time = row.input.time_offset;
-    const day = Math.floor(time / 86400) + 1;
-    const clock = `${String(Math.floor(time / 3600) % 24).padStart(2,'0')}:${String(Math.floor(time / 60) % 60).padStart(2,'0')}`;
-    return `<tr class="${row.result.prediction_id === state.selected ? 'selected' : ''}"><td><button class="transaction-select" data-id="${escape(row.result.prediction_id)}" aria-label="Inspect ${escape(row.input.transaction_id)}" aria-pressed="${row.result.prediction_id === state.selected}"><strong>${escape(row.input.transaction_id)}</strong><span>Day ${day}, ${clock} / ${escape(row.input.network)}</span></button></td><td>${money(row.input.amount)}</td><td class="risk-number">${percent(row.result.probability)}</td><td><span class="status ${row.result.decision}">${escape(row.result.decision)}</span></td><td><svg class="row-arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></td></tr>`;
-  }).join('');
-  document.querySelectorAll('[data-id]').forEach(button => button.addEventListener('click', () => {state.selected = button.dataset.id; renderLedger(); renderReceipt();}));
+  const filter = $("#filter").value;
+  const rows = state.rows.filter(
+    (r) => filter === "all" || r.result.decision === filter,
+  );
+  $("#ledger").innerHTML =
+    rows
+      .slice()
+      .reverse()
+      .map(
+        (row) =>
+          `<tr><td><button data-receipt="${esc(row.result.prediction_id)}">${esc(row.title)}</button></td><td>${money(row.input.amount)}</td><td>${pct(row.result.probability)}</td><td><span class="status ${esc(row.result.decision)}">${esc(row.result.decision)}</span></td><td>${row.result.signals.length}</td></tr>`,
+      )
+      .join("") ||
+    '<tr><td colspan="5" class="muted">No matching investigations yet.</td></tr>';
+  document.querySelectorAll("[data-receipt]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const row = state.rows.find(
+        (r) => r.result.prediction_id === b.dataset.receipt,
+      );
+      selectCase(state.cases.find((c) => c.title === row.title).id);
+      $("#amount").value = row.input.amount;
+      $("#device").value = row.input.device_type;
+      $("#payload").textContent = JSON.stringify(row.input, null, 2);
+      renderDecision(row);
+    }),
+  );
 }
-function renderReceipt() {
-  const row = state.rows.find(item => item.result.prediction_id === state.selected);
-  if (!row) return;
-  const {input, result} = row;
-  $('#receipt-number').textContent = input.transaction_id;
-  const max = Math.max(...result.reasons.map(reason => Math.abs(reason.contribution)), .001);
-  const t = result.thresholds;
-  $('#receipt-content').innerHTML = `<div class="receipt-heading"><h2>${result.decision === 'approve' ? 'Approve' : result.decision === 'review' ? 'Manual review' : 'Block'}</h2><span class="receipt-amount">${money(input.amount)}</span></div><div class="score">${(result.probability * 100).toFixed(1)}<small>%</small></div><p class="score-caption">Estimated fraud probability / ${escape(result.data_source)} model</p><div class="threshold-track"><span class="review-zone"></span><span class="block-zone"></span><span class="score-marker"></span></div><div class="threshold-labels"><span>0%</span><span>Review ${percent(t.review)}</span><span>Block ${percent(t.block)}</span><span>100%</span></div><h3>What influenced this score</h3>${result.reasons.map(reason => `<div class="reason"><div class="reason-label"><span>${escape(reason.label)}</span><span>${reason.contribution > 0 ? '+' : ''}${reason.contribution.toFixed(3)}</span></div><div class="reason-bar"><i class="${reason.direction}" data-value="${Math.abs(reason.contribution) / max * 100}"></i></div></div>`).join('')}<div class="receipt-facts"><div><span>Contribution scale</span><strong>Raw model log-odds</strong></div><div><span>Model version</span><strong>${escape(result.model_version)}</strong></div><div><span>Audit reference</span><strong>${escape(result.prediction_id.slice(0,18))}</strong></div><div><span>Data provenance</span><strong>${input.transaction_id.startsWith('SYN') ? 'Synthetic replay' : 'Manual test input'}</strong></div></div>`;
-  $('.review-zone').style.left = `${t.review * 100}%`; $('.review-zone').style.width = `${(t.block-t.review) * 100}%`;
-  $('.block-zone').style.left = `${t.block * 100}%`; $('.block-zone').style.width = `${(1-t.block) * 100}%`;
-  $('.score-marker').style.left = `${Math.min(99.7,result.probability * 100)}%`;
-  document.querySelectorAll('[data-value]').forEach(bar => bar.style.width = `${bar.dataset.value}%`);
-}
-function addRow(input, result) {
-  state.rows.push({input,result});
+$("#filter").addEventListener("change", renderLedger);
+function save(input, result, title) {
+  const row = { input, result, title };
+  state.rows.push(row);
   if (state.rows.length > 100) state.rows.shift();
-  state.selected = result.prediction_id;
-  renderLedger(); renderReceipt();
+  renderLedger();
+  return row;
 }
-function pause() { state.playing = false; clearTimeout(state.timer); $('#play span').textContent = 'Play replay'; }
-async function next() {
-  if (state.busy) return;
-  if (state.cursor >= state.samples.length) {pause(); notice('Replay complete. Reload the page to start a fresh synthetic replay.'); return;}
-  state.busy = true; $('#step').disabled = true;
-  const input = state.samples[state.cursor];
-  const start = performance.now();
+function busy(value) {
+  state.busy = value;
+  $("#score").disabled = value;
+  $("#run-all").disabled = value;
+  $("#score").textContent = value ? "Analyzing…" : "Analyze transaction ↗";
+}
+$("#score-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!state.selected || state.busy) return;
+  busy(true);
+  notice("");
+  const input = structuredClone(state.selected.transaction);
+  input.amount = Number($("#amount").value);
+  input.device_type = $("#device").value;
+  input.transaction_id = `SYN-${Date.now()}`;
+  $("#payload").textContent = JSON.stringify(input, null, 2);
   try {
-    const result = await api('/predict', input); state.cursor++; addRow(input,result);
-    $('#observed').textContent = `${Math.round(performance.now()-start)} ms last request, including network`;
-    notice('');
-  } catch (error) {pause(); notice(error.message);}
-  finally {state.busy = false; $('#step').disabled = false;}
-  if (state.playing) state.timer = setTimeout(next, Number($('#speed').value));
-}
-$('#step').addEventListener('click', () => {pause(); next();});
-$('#play').addEventListener('click', () => { if (state.playing) pause(); else {state.playing = true; $('#play span').textContent = 'Pause replay'; next();} });
-document.addEventListener('visibilitychange', () => {if (document.hidden) pause();});
-$('#score-form').addEventListener('submit', async event => {
-  event.preventDefault(); pause(); const button = event.target.querySelector('button'); button.disabled = true;
-  const form = new FormData(event.target); $('#form-error').textContent = '';
-  const input = {transaction_id:`TEST-${Date.now()}`, amount:Number(form.get('amount')), time_offset:Number(form.get('hour')) * 3600,
-    distance:form.get('distance') === '' ? null : Number(form.get('distance')), product:form.get('product'), network:form.get('network'), card_type:form.get('card_type'), identity_present:form.has('identity')};
-  try { addRow(input, await api('/predict',input)); } catch (error) {$('#form-error').textContent = error.message;}
-  finally {button.disabled = false;}
+    renderDecision(
+      save(input, await api("/predict", input), state.selected.title),
+    );
+  } catch (error) {
+    notice(error.message);
+  } finally {
+    busy(false);
+  }
 });
-function renderModels() {
-  const {metadata:m, evaluation:e, registry:r} = state.model;
-  const rows = [['PR-AUC', 'pr_auc'], ['ROC-AUC','roc_auc'], ['Brier score','brier'], ['Recall at review threshold','recall'], ['False-positive rate','false_positive_rate'], ['Hypothetical cost / transaction','cost_per_transaction']];
-  $('#model-content').innerHTML = `<div><h3>Final chronological test interval</h3><table class="metrics-table"><thead><tr><th>Measure</th><th>Logistic baseline</th><th>LightGBM</th></tr></thead><tbody>${rows.map(([label,key]) => `<tr><td>${label}</td><td>${e.baseline[key].toFixed(4)}</td><td>${e.final_test[key].toFixed(4)}</td></tr>`).join('')}</tbody></table><p class="footnote">${escape(e.warning)}. Cost figures use hypothetical review and false-block costs; they are not measured financial savings.</p><h3>Registry history</h3><table class="metrics-table"><thead><tr><th>Version</th><th>Outcome</th></tr></thead><tbody>${r.history.slice(-8).map(item => `<tr><td>${escape(item.version)}</td><td>${item.action === 'rollback' ? 'Rolled back' : item.promoted ? 'Promoted' : 'Candidate retained'}</td></tr>`).join('')}</tbody></table></div><div><h3>Reproducibility record</h3><dl class="fact-list"><div><dt>Data source</dt><dd>${escape(m.data_source)} / ${m.rows.toLocaleString()} transactions</dd></div><div><dt>Training version</dt><dd>${escape(m.version)}</dd></div><div><dt>Data SHA-256</dt><dd>${escape(m.data_sha256)}</dd></div><div><dt>Chronological split</dt><dd>${Object.entries(m.splits).map(([name,s]) => `${escape(name)}: ${s.rows.toLocaleString()} rows`).join('<br>')}</dd></div><div><dt>Production bundle</dt><dd>Pinned at process startup; verified model hash</dd></div></dl></div>`;
-}
-function renderDrift(name) {
-  const report = state.drift?.[name]; if (!report) return;
-  document.querySelectorAll('[data-scenario]').forEach(button => {const active = button.dataset.scenario === name; button.className = active ? 'primary' : 'secondary'; button.setAttribute('aria-pressed',String(active));});
-  $('#drift-content').innerHTML = `<div><p class="footnote">${escape(report.provenance)}</p><h3 class="drift-status ${report.drifted ? 'alert' : ''}">${report.drifted ? 'A different<br>distribution.' : 'Within the<br>reference pattern.'}</h3><dl class="fact-list"><div><dt>Sample size</dt><dd>${report.samples.toLocaleString()} synthetic transactions</dd></div><div><dt>Mean predicted probability</dt><dd>${percent(report.prediction_mean)}</dd></div><div><dt>Retraining status</dt><dd>${escape(report.retraining)}</dd></div></dl></div><div><h3>Feature distribution distance</h3>${report.features.map(item => `<div class="drift-feature"><span>${escape(labels[item.feature] || item.feature)}</span><div class="drift-bar"><span data-distance="${item.distance}"></span></div><span>${item.distance.toFixed(3)}</span></div>`).join('')}<p class="footnote">Jensen–Shannon distance. Values above 0.20 raise the drift flag. Data drift is not proof of reduced accuracy.</p></div>`;
-  document.querySelectorAll('[data-distance]').forEach(bar => bar.style.width = `${Math.min(100, Number(bar.dataset.distance) * 100)}%`);
-}
-document.querySelectorAll('[data-scenario]').forEach(button => button.addEventListener('click', () => renderDrift(button.dataset.scenario)));
-async function refreshMonitoring() {
-  try {const report = await api('/api/monitoring'); $('#monitoring-content').innerHTML = `<h3>${report.status === 'ready' ? (report.drifted ? 'Drift alert raised' : 'No drift alert') : report.status === 'not_run' ? 'No scheduled report yet' : 'Waiting for enough samples'}</h3><dl class="fact-list"><div><dt>Recorded monitoring samples</dt><dd>${report.samples || 0}</dd></div><div><dt>Generated at</dt><dd>${escape(report.generated_at || 'Not run')}</dd></div><div><dt>Retraining</dt><dd>${escape(typeof report.retraining === 'string' ? report.retraining : 'See local lifecycle report')}</dd></div><div><dt>Ground-truth performance</dt><dd>${report.performance?.status === 'ready' ? `PR-AUC ${report.performance.pr_auc.toFixed(4)} across ${report.performance.labeled_rows} labeled decisions` : 'Insufficient delayed labels; accuracy is not inferred from drift'}</dd></div></dl>`;} catch (error) {$('#monitoring-content').textContent = error.message;}
-}
-$('#refresh-monitoring').addEventListener('click',refreshMonitoring);
-async function init() {
-  $('#play').disabled = true; $('#step').disabled = true;
+$("#run-all").addEventListener("click", async () => {
+  if (state.busy) return;
+  busy(true);
+  notice("");
+  $("#suite-result").textContent = "Scoring all synthetic scenarios…";
   try {
-    const ready = await api('/ready'); $('#model-version').textContent = ready.model_version;
-    if (ready.audit_storage === 'ephemeral') $('.desk-context p').textContent = 'This hosted demo scores synthetic and illustrative transactions. Audit records use temporary instance storage. Training, durable audit logging, and scheduled monitoring run in the local Docker stack.';
-    $('#model-source').textContent = `${ready.data_source} training / verified bundle`; $('#connection').textContent = 'Scoring service connected';
-    const [sampleData, model] = await Promise.all([api('/api/samples'),api('/api/model')]);
-    state.samples = sampleData.transactions; state.model = model; renderModels();
-    const start = performance.now();
-    const inputs = state.samples.slice(0,10);
-    const batch = await api('/predict/batch',{transactions:inputs});
-    state.rows = batch.predictions.map((result,index) => ({input:inputs[index],result}));
-    state.cursor = inputs.length; state.selected = state.rows.at(-1).result.prediction_id;
-    renderLedger(); renderReceipt(); $('#observed').textContent = `${Math.round(performance.now()-start)} ms initial batch, including network`;
-    $('#play').disabled = false; $('#step').disabled = false;
-    try {state.drift = await api('/api/drift'); renderDrift('reference');} catch(error) {$('#drift-content').textContent = error.message;}
-  } catch (error) { notice(error.message); $('#connection').textContent = 'Scoring service unavailable'; $('#model-version').textContent = 'Unavailable'; $('#model-source').textContent = 'Reload after the service is ready'; $('#transactions').innerHTML = '<tr><td colspan="5" class="empty">The scoring service is unavailable. No sample scores have been substituted.</td></tr>'; }
+    const data = await api("/predict/batch", {
+      transactions: state.cases.map((c) => c.transaction),
+    });
+    let passed = 0;
+    data.predictions.forEach((r, i) => {
+      const c = state.cases[i];
+      const ok = c.expected_factor
+        ? r.signals.some((s) => s.factor === c.expected_factor)
+        : r.signals.length === 0;
+      if (ok) passed++;
+      save(c.transaction, r, c.title);
+    });
+    $("#suite-result").textContent =
+      `${passed} / ${state.cases.length} expected signal checks passed. Real-world accuracy is evaluated separately on the IEEE holdout.`;
+    selectCase(state.cases.at(-1).id);
+    renderDecision(state.rows.at(-1));
+  } catch (error) {
+    $("#suite-result").textContent = "Suite could not finish.";
+    notice(error.message);
+  } finally {
+    busy(false);
+  }
+});
+function renderModel({ metadata: m, evaluation: e }) {
+  const f = e.final_test;
+  $("#stats").innerHTML = [
+    [
+      "TRAINING SOURCE",
+      m.data_source === "ieee-cis" ? "IEEE-CIS" : "Synthetic",
+      `${m.rows.toLocaleString()} labeled transactions`,
+    ],
+    [
+      "HELD-OUT PR-AUC",
+      f.pr_auc.toFixed(3),
+      `${f.rows.toLocaleString()} later transactions`,
+    ],
+    [
+      "FEATURE CONTRACT",
+      String(m.features.length),
+      "Shared by training and inference",
+    ],
+    ["RISK COVERAGE", "9 factors", "Trained features + contextual controls"],
+  ]
+    .map(
+      ([a, b, c]) =>
+        `<div><span>${esc(a)}</span><strong>${esc(b)}</strong><small>${esc(c)}</small></div>`,
+    )
+    .join("");
+  $("#connection").textContent =
+    `${m.data_source === "ieee-cis" ? "IEEE-CIS" : "Synthetic"} model ready`;
+  $("#model-version").textContent = m.version;
+  const metrics = [
+    ["PR-AUC (average precision)", "pr_auc"],
+    ["ROC-AUC", "roc_auc"],
+    ["Brier score ↓", "brier"],
+    ["Recall at review threshold", "recall"],
+    ["False-positive rate ↓", "false_positive_rate"],
+    ["Hypothetical cost / transaction ↓", "cost_per_transaction"],
+  ];
+  $("#model-content").innerHTML =
+    `<div class="evidence-header"><div><p class="eyebrow">VERIFIED MODEL BUNDLE</p><h2>LightGBM, trained on ${esc(m.data_source)}.</h2><p>${esc(e.warning)}</p></div><a href="https://github.com/hafiz-fansuri/fraudline/blob/main/fraudline/pipeline.py" target="_blank" rel="noreferrer">Open training file ↗</a></div><div class="evidence-grid"><div><h3>Untouched chronological test interval</h3><div class="table-scroll"><table><thead><tr><th>Measure</th><th>Logistic baseline</th><th>LightGBM</th></tr></thead><tbody>${metrics.map(([name, key]) => `<tr><td>${name}</td><td>${e.baseline[key].toFixed(4)}</td><td>${f[key].toFixed(4)}</td></tr>`).join("")}</tbody></table></div><p class="muted">Cost uses illustrative review and false-block assumptions. Each model selects its own thresholds on calibration data. These are not measured financial savings.</p><h3>Time is part of the evaluation</h3><div class="split-bar">${Object.entries(
+      m.splits,
+    )
+      .map(
+        ([name, s]) =>
+          `<span title="${esc(name)}: ${s.rows} rows" data-width="${(s.rows / m.rows) * 100}"></span>`,
+      )
+      .join("")}</div><div class="split-key">${Object.entries(m.splits)
+      .map(
+        ([name, s]) =>
+          `<span>${esc(name.replaceAll("_", " "))}: ${s.rows.toLocaleString()}</span>`,
+      )
+      .join(
+        "",
+      )}</div><h3>Largest training gain contributions</h3>${Object.entries(
+      m.feature_importance_gain || {},
+    )
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(
+        ([key, value]) =>
+          `<div class="reason-label"><span>${esc(key)}</span><span>${Math.round(value).toLocaleString()}</span></div>`,
+      )
+      .join(
+        "",
+      )}<p class="muted">Gain describes training split utility; it is not causal importance.</p></div><div><h3>Reproducibility record</h3><dl class="facts">${[
+      ["Version", m.version],
+      [
+        "Fraud prevalence",
+        m.fraud_rate === undefined
+          ? "Unavailable"
+          : `${pct(m.fraud_rate)} (${m.fraud_rows.toLocaleString()} rows)`,
+      ],
+      ["Feature schema", m.feature_schema_version || 1],
+      ["Model SHA-256", m.model_sha256],
+      ["Prepared data SHA-256", m.data_sha256],
+      ["History semantics", m.history_semantics || "Legacy feature contract"],
+      [
+        "Calibration",
+        `Sigmoid slope ${m.calibration.slope.toFixed(4)}; intercept ${m.calibration.intercept.toFixed(4)}`,
+      ],
+    ]
+      .map(([a, b]) => `<div><dt>${esc(a)}</dt><dd>${esc(b)}</dd></div>`)
+      .join(
+        "",
+      )}</dl><a class="text-link" href="/guide">Understand the training process ↗</a></div></div>`;
+  $("#model-content")
+    .querySelectorAll("[data-width]")
+    .forEach((el) => (el.style.width = `${el.dataset.width}%`));
+}
+async function init() {
+  busy(true);
+  try {
+    const [model, scenarios, factors] = await Promise.all([
+      api("/api/model"),
+      api("/api/scenarios"),
+      api("/api/factors"),
+    ]);
+    renderModel(model);
+    state.cases = scenarios.scenarios;
+    selectCase(state.cases[0].id);
+    $("#factor-grid").innerHTML = factors.factors
+      .map(
+        (f, i) =>
+          `<article class="factor-card"><span class="number">${String(i + 1).padStart(2, "0")} / SIGNAL COVERAGE</span><h3>${esc(f.name)}</h3><span class="status ${esc(f.status)}">${f.status === "trained" ? "Trained features" : f.status === "partial" ? "Trained + contextual" : "Contextual control"}</span><p>${esc(f.description)}</p></article>`,
+      )
+      .join("");
+  } catch (error) {
+    notice(`Could not load the workbench: ${error.message}`);
+    $("#connection").textContent = "Connection unavailable";
+  } finally {
+    busy(false);
+  }
 }
 init();
+
+async function renderOperations() {
+  try {
+    const [ready, monitor] = await Promise.all([
+      api("/ready"),
+      api("/api/monitoring"),
+    ]);
+    let drift = null;
+    try {
+      drift = await api("/api/drift");
+    } catch {}
+    $("#operations-content").innerHTML =
+      `<dl class="facts"><div><dt>Readiness</dt><dd>${esc(ready.status)} · ${esc(ready.model_version)}</dd></div><div><dt>Audit storage</dt><dd>${esc(ready.audit_storage)} — public Vercel storage is temporary</dd></div><div><dt>Scheduled monitoring</dt><dd>${esc(monitor.status || "Unknown")} · ${monitor.samples || 0} recorded samples</dd></div><div><dt>Delayed-label performance</dt><dd>${monitor.performance?.status === "ready" ? `PR-AUC ${monitor.performance.pr_auc.toFixed(4)}` : "Insufficient ground-truth labels; not inferred from drift"}</dd></div></dl><h3>Synthetic drift exercise</h3><p class="muted">Precomputed synthetic populations compared with the trained model reference. A synthetic reference case may also differ from IEEE. These are not production alerts and do not trigger retraining.</p>${
+        drift
+          ? Object.entries(drift)
+              .map(
+                ([name, r]) =>
+                  `<div class="signal"><strong>${esc(name)}: ${r.drifted ? "distribution difference detected" : "within reference threshold"}</strong><p>${r.samples} synthetic rows · mean prediction ${pct(r.prediction_mean)} · ${esc(r.retraining)}</p></div>`,
+              )
+              .join("")
+          : '<p class="muted">No precomputed drift exercise is available.</p>'
+      }`;
+  } catch (error) {
+    $("#operations-content").textContent = error.message;
+  }
+}
+$("#refresh-operations").addEventListener("click", renderOperations);

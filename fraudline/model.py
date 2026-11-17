@@ -23,14 +23,17 @@ class Model:
     def __init__(self, folder):
         folder = Path(folder)
         self.meta = json.loads((folder / "metadata.json").read_text())
-        if self.meta["features"] != FEATURES or sha256(folder / "model.txt") != self.meta["model_sha256"]:
+        if (
+            not set(self.meta["features"]).issubset(FEATURES)
+            or sha256(folder / "model.txt") != self.meta["model_sha256"]
+        ):
             raise ValueError("Model bundle integrity or feature contract mismatch")
         self.booster = lgb.Booster(model_file=str(folder / "model.txt"))
-        if self.booster.feature_name() != FEATURES:
+        if self.booster.feature_name() != self.meta["features"]:
             raise ValueError("Model feature order mismatch")
 
     def probabilities(self, records):
-        raw = self.booster.predict(features(records), raw_score=True, num_threads=1)
+        raw = self.booster.predict(features(records, self.meta["features"]), raw_score=True, num_threads=1)
         return self.calibrate(raw)
 
     def calibrate(self, raw):
@@ -38,7 +41,7 @@ class Model:
         return 1 / (1 + np.exp(-np.clip(calibrated, -40, 40)))
 
     def predict(self, records):
-        x = features(records)
+        x = features(records, self.meta["features"])
         explanation = self.booster.predict(x, pred_contrib=True, num_threads=1)
         # TreeSHAP contributions plus the bias sum to the raw model score.
         probability = self.calibrate(explanation.sum(axis=1))
@@ -48,8 +51,10 @@ class Model:
         for p, row in zip(probability, contributions, strict=True):
             reasons = [
                 {
-                    "feature": FEATURES[i],
-                    "label": LABELS[FEATURES[i]],
+                    "feature": self.meta["features"][i],
+                    "label": LABELS.get(
+                        self.meta["features"][i], self.meta["features"][i].replace("_", " ").capitalize()
+                    ),
                     "contribution": round(float(row[i]), 5),
                     "direction": "increases" if row[i] > 0 else "decreases",
                 }

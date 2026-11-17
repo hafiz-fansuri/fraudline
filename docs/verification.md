@@ -1,5 +1,7 @@
 # Executed checks — 16 November 2026
 
+Historical synthetic-model exercise. For the current IEEE-trained model and redesigned UI, read [17 November execution evidence](ieee-verification.md).
+
 ## Application and data
 
 - 11 tests passed, including chronological boundaries, batch/single feature parity, schema rejection, join fan-out, model tampering, promotion rejection, drift minimum samples, API contracts, failed-audit error metrics, readiness and rollback.

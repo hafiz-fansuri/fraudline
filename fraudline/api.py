@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import threading
 import time
@@ -11,24 +12,75 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, generate_latest
-from pydantic import BaseModel, ConfigDict, Field, StrictBool
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
-from fraudline.data import INPUTS, synthetic
+from fraudline.data import ANON_NUMERIC, INPUTS, MATCH_FIELDS, synthetic
+from fraudline.history import enrich
 from fraudline.model import Model
-from fraudline.pipeline import ART, ROOT, records, registry
+from fraudline.pipeline import ART, ROOT, registry
+from fraudline.signals import FACTOR_COVERAGE, combine, controls
 from fraudline.store import Store
 
 
-class Transaction(BaseModel):
+class HistoryEvent(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-    transaction_id: str = Field(default="manual", min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
     amount: float = Field(gt=0, le=1_000_000, strict=True)
     time_offset: int = Field(ge=0, le=10_000_000_000, strict=True)
+    account_id: str | None = Field(default=None, max_length=80, pattern=r"^[A-Za-z0-9_-]+$")
+    device_type: Literal["desktop", "mobile", "unknown"] = "unknown"
+    payer_email_domain: str | None = Field(default=None, max_length=80, pattern=r"^[A-Za-z0-9.-]+$")
+    device_id: str | None = Field(default=None, max_length=80, pattern=r"^[A-Za-z0-9_-]+$")
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+
+
+class Context(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    country: str | None = Field(default=None, pattern=r"^[A-Z]{2}$")
+    ip_country: str | None = Field(default=None, pattern=r"^[A-Z]{2}$")
+    billing_country: str | None = Field(default=None, pattern=r"^[A-Z]{2}$")
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    device_id: str | None = Field(default=None, max_length=80, pattern=r"^[A-Za-z0-9_-]+$")
+    merchant_category: Literal["general", "gift_cards", "crypto", "gambling"] = "general"
+    failed_logins_1h: int = Field(default=0, ge=0, le=1000, strict=True)
+    password_changed_minutes: int | None = Field(default=None, ge=0, le=1_000_000, strict=True)
+    new_payee: StrictBool = False
+    withdrawal: StrictBool = False
+    identity_match: StrictBool | None = None
+    disposable_email: StrictBool = False
+
+
+class Transaction(HistoryEvent):
+    transaction_id: str = Field(default="manual", min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
     product: Literal["W", "C", "R", "H", "S"]
     network: Literal["visa", "mastercard", "american express", "discover", "unknown"]
     card_type: Literal["debit", "credit", "unknown"]
     distance: float | None = Field(default=None, ge=0, le=100_000, strict=True)
     identity_present: StrictBool
+    receiver_email_domain: str | None = Field(default=None, max_length=80, pattern=r"^[A-Za-z0-9.-]+$")
+    address_region: float | None = Field(default=None, ge=0, le=1_000_000)
+    issuer_region: float | None = Field(default=None, ge=0, le=1_000_000)
+    history: list[HistoryEvent] = Field(default_factory=list, max_length=200)
+    context: Context = Field(default_factory=Context)
+    benchmark_signals: dict[str, float | Literal["T", "F"] | None] = Field(
+        default_factory=dict, max_length=28
+    )
+
+    @model_validator(mode="after")
+    def known_benchmark_fields(self):
+        if not set(self.benchmark_signals).issubset([*ANON_NUMERIC, *MATCH_FIELDS]):
+            raise ValueError("Unknown anonymized IEEE benchmark field")
+        for name, value in self.benchmark_signals.items():
+            if value is None:
+                continue
+            if name in ANON_NUMERIC and (
+                not isinstance(value, (int, float)) or not math.isfinite(value) or not -1 <= value <= 1e9
+            ):
+                raise ValueError("IEEE count/duration fields must be finite numbers between -1 and 1e9")
+            if name in MATCH_FIELDS and value not in ["T", "F", 0, 1]:
+                raise ValueError("IEEE match fields must be T, F, 0, 1 or null")
+        return self
 
 
 class Batch(BaseModel):
@@ -89,8 +141,8 @@ def create_app(model_path=None, database_url=None):
             chunks = []
             async for chunk in request.stream():
                 size += len(chunk)
-                if size > 65536:
-                    return JSONResponse({"detail": "Request body exceeds 64 KiB"}, 413)
+                if size > 262144:
+                    return JSONResponse({"detail": "Request body exceeds 256 KiB"}, 413)
                 chunks.append(chunk)
             request._body = b"".join(chunks)
         try:
@@ -133,9 +185,38 @@ def create_app(model_path=None, database_url=None):
     def score(transactions):
         model = ready()
         raw = [t.model_dump() for t in transactions]
-        results = model.predict([{key: r[key] for key in INPUTS} for r in raw])
-        for inputs, result in zip(raw, results, strict=True):
-            result["prediction_id"] = app.state.store.append(inputs, result)
+        enriched = [
+            enrich(
+                {
+                    key: value
+                    for key, value in r.items()
+                    if key not in ["history", "context", "benchmark_signals"]
+                }
+                | r["benchmark_signals"],
+                r["history"],
+            )
+            for r in raw
+        ]
+        results = model.predict(enriched)
+        for inputs, values, result in zip(raw, enriched, results, strict=True):
+            result["model_decision"] = result["decision"]
+            result["signals"] = controls(values, inputs["history"], inputs["context"])
+            result["decision"] = combine(result["model_decision"], result["signals"])
+            result["history_features"] = {
+                key: values[key]
+                for key in [
+                    "transactions_1h",
+                    "transactions_24h",
+                    "transactions_7d",
+                    "small_charges_10m",
+                    "amount_ratio_7d",
+                    "amount_zscore_7d",
+                    "unusual_hour",
+                    "device_type_new",
+                ]
+            }
+            result["factor_coverage"] = FACTOR_COVERAGE
+            result["prediction_id"] = app.state.store.append({key: values.get(key) for key in INPUTS}, result)
         return results
 
     @app.post("/predict")
@@ -149,10 +230,44 @@ def create_app(model_path=None, database_url=None):
     @app.get("/api/samples")
     def samples():
         frame = synthetic(180, seed=73)
-        rows = records(frame)
+        rows = (
+            frame[
+                [
+                    "amount",
+                    "time_offset",
+                    "product",
+                    "network",
+                    "card_type",
+                    "distance",
+                    "identity_present",
+                    "account_id",
+                    "device_type",
+                    "payer_email_domain",
+                    "receiver_email_domain",
+                ]
+            ]
+            .replace({float("nan"): None})
+            .to_dict("records")
+        )
         return {
             "provenance": "Synthetic transactions; not live payments",
             "transactions": [{"transaction_id": f"SYN-{i:06}", **row} for i, row in enumerate(rows[:60])],
+        }
+
+    @app.get("/api/factors")
+    def factors():
+        return {
+            "factors": FACTOR_COVERAGE,
+            "probability_note": "Contextual controls can escalate the decision without altering the calibrated model probability.",
+        }
+
+    @app.get("/api/scenarios")
+    def scenario_list():
+        from fraudline.scenarios import scenarios
+
+        return {
+            "provenance": "Synthetic operational scenarios; not a real-world accuracy estimate",
+            "scenarios": scenarios(),
         }
 
     @app.get("/api/model")
@@ -197,6 +312,10 @@ def create_app(model_path=None, database_url=None):
     @app.get("/docs", include_in_schema=False)
     def reference():
         return FileResponse(static / "api.html")
+
+    @app.get("/guide", include_in_schema=False)
+    def learning_guide():
+        return FileResponse(static / "guide.html")
 
     return app
 

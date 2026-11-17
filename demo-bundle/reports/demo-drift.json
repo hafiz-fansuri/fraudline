@@ -3,59 +3,284 @@
     "status": "ready",
     "samples": 1500,
     "minimum": 100,
-    "drifted": false,
+    "drifted": true,
     "features": [
       {
         "feature": "log_amount",
-        "distance": 0.0309,
+        "distance": 0.187,
         "drifted": false
       },
       {
         "feature": "hour_sin",
-        "distance": 0.0082,
+        "distance": 0.1824,
         "drifted": false
       },
       {
         "feature": "hour_cos",
-        "distance": 0.0037,
+        "distance": 0.1607,
         "drifted": false
       },
       {
         "feature": "product",
-        "distance": 0.0175,
+        "distance": 0.0319,
         "drifted": false
       },
       {
         "feature": "network",
-        "distance": 0.0178,
+        "distance": 0.0992,
         "drifted": false
       },
       {
         "feature": "card_type",
-        "distance": 0.0084,
+        "distance": 0.0579,
         "drifted": false
       },
       {
         "feature": "log_distance",
-        "distance": 0.0305,
-        "drifted": false
+        "distance": 0.4082,
+        "drifted": true
       },
       {
         "feature": "distance_missing",
-        "distance": 0.0119,
-        "drifted": false
+        "distance": 0.3036,
+        "drifted": true
       },
       {
         "feature": "identity_present",
-        "distance": 0.0059,
+        "distance": 0.2709,
+        "drifted": true
+      },
+      {
+        "feature": "history_available",
+        "distance": 0.0149,
         "drifted": false
+      },
+      {
+        "feature": "transactions_1h",
+        "distance": 0.3036,
+        "drifted": true
+      },
+      {
+        "feature": "transactions_24h",
+        "distance": 0.5048,
+        "drifted": true
+      },
+      {
+        "feature": "transactions_7d",
+        "distance": 0.5321,
+        "drifted": true
+      },
+      {
+        "feature": "small_charges_10m",
+        "distance": 0.0014,
+        "drifted": false
+      },
+      {
+        "feature": "amount_ratio_7d",
+        "distance": 0.1583,
+        "drifted": false
+      },
+      {
+        "feature": "amount_zscore_7d",
+        "distance": 0.1763,
+        "drifted": false
+      },
+      {
+        "feature": "seconds_since_previous",
+        "distance": 0.6377,
+        "drifted": true
+      },
+      {
+        "feature": "unusual_hour",
+        "distance": 0.2294,
+        "drifted": true
+      },
+      {
+        "feature": "device_type_new",
+        "distance": 0.1954,
+        "drifted": false
+      },
+      {
+        "feature": "payer_domain_changed",
+        "distance": 0.0225,
+        "drifted": false
+      },
+      {
+        "feature": "device_type",
+        "distance": 0.2187,
+        "drifted": true
+      },
+      {
+        "feature": "payer_domain_bucket",
+        "distance": 0.3277,
+        "drifted": true
+      },
+      {
+        "feature": "receiver_domain_bucket",
+        "distance": 0.3006,
+        "drifted": true
+      },
+      {
+        "feature": "email_domain_mismatch",
+        "distance": 0.1984,
+        "drifted": false
+      },
+      {
+        "feature": "address_region",
+        "distance": 0.708,
+        "drifted": true
+      },
+      {
+        "feature": "issuer_region",
+        "distance": 0.8021,
+        "drifted": true
+      },
+      {
+        "feature": "C1",
+        "distance": 0.8253,
+        "drifted": true
+      },
+      {
+        "feature": "C2",
+        "distance": 0.8245,
+        "drifted": true
+      },
+      {
+        "feature": "C3",
+        "distance": 0.0294,
+        "drifted": false
+      },
+      {
+        "feature": "C4",
+        "distance": 0.3191,
+        "drifted": true
+      },
+      {
+        "feature": "C5",
+        "distance": 0.3685,
+        "drifted": true
+      },
+      {
+        "feature": "C6",
+        "distance": 0.7381,
+        "drifted": true
+      },
+      {
+        "feature": "C7",
+        "distance": 0.2012,
+        "drifted": true
+      },
+      {
+        "feature": "C8",
+        "distance": 0.3279,
+        "drifted": true
+      },
+      {
+        "feature": "C9",
+        "distance": 0.5308,
+        "drifted": true
+      },
+      {
+        "feature": "C10",
+        "distance": 0.3213,
+        "drifted": true
+      },
+      {
+        "feature": "C11",
+        "distance": 0.8243,
+        "drifted": true
+      },
+      {
+        "feature": "C12",
+        "distance": 0.2189,
+        "drifted": true
+      },
+      {
+        "feature": "C13",
+        "distance": 0.7482,
+        "drifted": true
+      },
+      {
+        "feature": "C14",
+        "distance": 0.7499,
+        "drifted": true
+      },
+      {
+        "feature": "D1",
+        "distance": 0.8261,
+        "drifted": true
+      },
+      {
+        "feature": "D2",
+        "distance": 0.3975,
+        "drifted": true
+      },
+      {
+        "feature": "D3",
+        "distance": 0.4655,
+        "drifted": true
+      },
+      {
+        "feature": "D4",
+        "distance": 0.5651,
+        "drifted": true
+      },
+      {
+        "feature": "D10",
+        "distance": 0.6627,
+        "drifted": true
+      },
+      {
+        "feature": "D15",
+        "distance": 0.6514,
+        "drifted": true
+      },
+      {
+        "feature": "M1",
+        "distance": 0.4014,
+        "drifted": true
+      },
+      {
+        "feature": "M2",
+        "distance": 0.3753,
+        "drifted": true
+      },
+      {
+        "feature": "M3",
+        "distance": 0.3472,
+        "drifted": true
+      },
+      {
+        "feature": "M5",
+        "distance": 0.3928,
+        "drifted": true
+      },
+      {
+        "feature": "M6",
+        "distance": 0.5639,
+        "drifted": true
+      },
+      {
+        "feature": "M7",
+        "distance": 0.3134,
+        "drifted": true
+      },
+      {
+        "feature": "M8",
+        "distance": 0.3134,
+        "drifted": true
+      },
+      {
+        "feature": "M9",
+        "distance": 0.2843,
+        "drifted": true
       }
     ],
     "method": "Jensen-Shannon distance; threshold 0.20; reference quantile bins",
     "scenario": "reference",
     "provenance": "Independent synthetic sample",
-    "prediction_mean": 0.022846242462183683,
-    "generated_at": "2026-11-16T14:51:29.120861+00:00",
+    "prediction_mean": 0.3089831452216811,
+    "generated_at": "2026-11-17T07:44:22.940237+00:00",
     "retraining": "Not triggered: isolated demonstration"
   },
   "shifted": {
@@ -66,55 +291,280 @@
     "features": [
       {
         "feature": "log_amount",
-        "distance": 0.5504,
+        "distance": 0.5074,
         "drifted": true
       },
       {
         "feature": "hour_sin",
-        "distance": 0.0082,
+        "distance": 0.1824,
         "drifted": false
       },
       {
         "feature": "hour_cos",
-        "distance": 0.0037,
+        "distance": 0.1607,
         "drifted": false
       },
       {
         "feature": "product",
-        "distance": 0.0175,
+        "distance": 0.0319,
         "drifted": false
       },
       {
         "feature": "network",
-        "distance": 0.0178,
+        "distance": 0.0992,
         "drifted": false
       },
       {
         "feature": "card_type",
-        "distance": 0.0084,
+        "distance": 0.0579,
         "drifted": false
       },
       {
         "feature": "log_distance",
-        "distance": 0.7139,
+        "distance": 0.72,
         "drifted": true
       },
       {
         "feature": "distance_missing",
-        "distance": 0.2636,
+        "distance": 0.5336,
         "drifted": true
       },
       {
         "feature": "identity_present",
-        "distance": 0.0059,
+        "distance": 0.2709,
+        "drifted": true
+      },
+      {
+        "feature": "history_available",
+        "distance": 0.0149,
         "drifted": false
+      },
+      {
+        "feature": "transactions_1h",
+        "distance": 0.3036,
+        "drifted": true
+      },
+      {
+        "feature": "transactions_24h",
+        "distance": 0.5048,
+        "drifted": true
+      },
+      {
+        "feature": "transactions_7d",
+        "distance": 0.5321,
+        "drifted": true
+      },
+      {
+        "feature": "small_charges_10m",
+        "distance": 0.0014,
+        "drifted": false
+      },
+      {
+        "feature": "amount_ratio_7d",
+        "distance": 0.1583,
+        "drifted": false
+      },
+      {
+        "feature": "amount_zscore_7d",
+        "distance": 0.1763,
+        "drifted": false
+      },
+      {
+        "feature": "seconds_since_previous",
+        "distance": 0.6377,
+        "drifted": true
+      },
+      {
+        "feature": "unusual_hour",
+        "distance": 0.2294,
+        "drifted": true
+      },
+      {
+        "feature": "device_type_new",
+        "distance": 0.1954,
+        "drifted": false
+      },
+      {
+        "feature": "payer_domain_changed",
+        "distance": 0.0225,
+        "drifted": false
+      },
+      {
+        "feature": "device_type",
+        "distance": 0.2187,
+        "drifted": true
+      },
+      {
+        "feature": "payer_domain_bucket",
+        "distance": 0.3277,
+        "drifted": true
+      },
+      {
+        "feature": "receiver_domain_bucket",
+        "distance": 0.3006,
+        "drifted": true
+      },
+      {
+        "feature": "email_domain_mismatch",
+        "distance": 0.1984,
+        "drifted": false
+      },
+      {
+        "feature": "address_region",
+        "distance": 0.708,
+        "drifted": true
+      },
+      {
+        "feature": "issuer_region",
+        "distance": 0.8021,
+        "drifted": true
+      },
+      {
+        "feature": "C1",
+        "distance": 0.8253,
+        "drifted": true
+      },
+      {
+        "feature": "C2",
+        "distance": 0.8245,
+        "drifted": true
+      },
+      {
+        "feature": "C3",
+        "distance": 0.0294,
+        "drifted": false
+      },
+      {
+        "feature": "C4",
+        "distance": 0.3191,
+        "drifted": true
+      },
+      {
+        "feature": "C5",
+        "distance": 0.3685,
+        "drifted": true
+      },
+      {
+        "feature": "C6",
+        "distance": 0.7381,
+        "drifted": true
+      },
+      {
+        "feature": "C7",
+        "distance": 0.2012,
+        "drifted": true
+      },
+      {
+        "feature": "C8",
+        "distance": 0.3279,
+        "drifted": true
+      },
+      {
+        "feature": "C9",
+        "distance": 0.5308,
+        "drifted": true
+      },
+      {
+        "feature": "C10",
+        "distance": 0.3213,
+        "drifted": true
+      },
+      {
+        "feature": "C11",
+        "distance": 0.8243,
+        "drifted": true
+      },
+      {
+        "feature": "C12",
+        "distance": 0.2189,
+        "drifted": true
+      },
+      {
+        "feature": "C13",
+        "distance": 0.7482,
+        "drifted": true
+      },
+      {
+        "feature": "C14",
+        "distance": 0.7499,
+        "drifted": true
+      },
+      {
+        "feature": "D1",
+        "distance": 0.8261,
+        "drifted": true
+      },
+      {
+        "feature": "D2",
+        "distance": 0.3975,
+        "drifted": true
+      },
+      {
+        "feature": "D3",
+        "distance": 0.4655,
+        "drifted": true
+      },
+      {
+        "feature": "D4",
+        "distance": 0.5651,
+        "drifted": true
+      },
+      {
+        "feature": "D10",
+        "distance": 0.6627,
+        "drifted": true
+      },
+      {
+        "feature": "D15",
+        "distance": 0.6514,
+        "drifted": true
+      },
+      {
+        "feature": "M1",
+        "distance": 0.4014,
+        "drifted": true
+      },
+      {
+        "feature": "M2",
+        "distance": 0.3753,
+        "drifted": true
+      },
+      {
+        "feature": "M3",
+        "distance": 0.3472,
+        "drifted": true
+      },
+      {
+        "feature": "M5",
+        "distance": 0.3928,
+        "drifted": true
+      },
+      {
+        "feature": "M6",
+        "distance": 0.5639,
+        "drifted": true
+      },
+      {
+        "feature": "M7",
+        "distance": 0.3134,
+        "drifted": true
+      },
+      {
+        "feature": "M8",
+        "distance": 0.3134,
+        "drifted": true
+      },
+      {
+        "feature": "M9",
+        "distance": 0.2843,
+        "drifted": true
       }
     ],
     "method": "Jensen-Shannon distance; threshold 0.20; reference quantile bins",
     "scenario": "shifted",
     "provenance": "Injected synthetic scenario",
-    "prediction_mean": 0.16568971669173901,
-    "generated_at": "2026-11-16T14:51:29.168601+00:00",
+    "prediction_mean": 0.49920188137324284,
+    "generated_at": "2026-11-17T07:44:24.468998+00:00",
     "retraining": "Not triggered: isolated demonstration"
   }
 }

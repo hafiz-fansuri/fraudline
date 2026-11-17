@@ -19,4 +19,4 @@ flowchart LR
   Prometheus --> Grafana[Grafana and alert rules]
 ```
 
-One Python package owns validation, features and scoring. The hosted image carries a synthetic-only export of the model and UI. Training and monitoring run separately. No cloud secret is needed for local execution.
+One Python package owns validation, features and scoring. The hosted bundle carries the IEEE-trained model, aggregate evidence, authored synthetic scenarios and UI; source/reference rows are excluded. Past-only history is shared by preparation and request enrichment. Context controls may escalate the decision without changing calibrated probability. Training and monitoring run separately. See the [A–Z guide](learning-guide.md) for coverage and trust boundaries.

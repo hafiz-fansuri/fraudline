@@ -1,0 +1,85 @@
+{
+  "version": "fl-20261117072348-496b08",
+  "data_source": "ieee-cis",
+  "promotion": {
+    "pr_auc": 0.4747476386112403,
+    "roc_auc": 0.8823421240985709,
+    "brier": 0.023526624511131012,
+    "recall": 0.7661129568106312,
+    "false_positive_rate": 0.15917085279343082,
+    "cost_per_transaction": 2.323469705611671,
+    "rows": 88013
+  },
+  "incumbent": null,
+  "promoted": true,
+  "final_test": {
+    "pr_auc": 0.46144830159645567,
+    "roc_auc": 0.8754304342827091,
+    "brier": 0.024288954495325043,
+    "recall": 0.7817292006525286,
+    "false_positive_rate": 0.1930695398513221,
+    "cost_per_transaction": 2.4749794984162308,
+    "rows": 88081
+  },
+  "slices": {
+    "C": {
+      "pr_auc": 0.725516924034287,
+      "roc_auc": 0.9213869106006697,
+      "brier": 0.05987794409471126,
+      "recall": 0.944794952681388,
+      "false_positive_rate": 0.384026663374892,
+      "cost_per_transaction": 2.468597203543601,
+      "rows": 9369
+    },
+    "H": {
+      "pr_auc": 0.44477029520829303,
+      "roc_auc": 0.8672685490914512,
+      "brier": 0.047288899630265925,
+      "recall": 0.8853503184713376,
+      "false_positive_rate": 0.3076923076923077,
+      "cost_per_transaction": 2.5700274617497056,
+      "rows": 2549
+    },
+    "R": {
+      "pr_auc": 0.6941997266333639,
+      "roc_auc": 0.9407912106374807,
+      "brier": 0.02470163086227088,
+      "recall": 0.9095238095238095,
+      "false_positive_rate": 0.2169858870967742,
+      "cost_per_transaction": 2.4114408808042125,
+      "rows": 4178
+    },
+    "S": {
+      "pr_auc": 0.49864248649092474,
+      "roc_auc": 0.7735105312980712,
+      "brier": 0.03482304839471627,
+      "recall": 0.8541666666666666,
+      "false_positive_rate": 0.6464323748668797,
+      "cost_per_transaction": 2.5383316447146234,
+      "rows": 2961
+    },
+    "W": {
+      "pr_auc": 0.09621185147609733,
+      "roc_auc": 0.800915791779754,
+      "brier": 0.018132027664037213,
+      "recall": 0.5793157076205288,
+      "false_positive_rate": 0.14592990640408635,
+      "cost_per_transaction": 2.473464041492814,
+      "rows": 69024
+    }
+  },
+  "baseline": {
+    "pr_auc": 0.13006832073852498,
+    "roc_auc": 0.7992913357754288,
+    "brier": 0.038451991975307465,
+    "recall": 0.9034257748776509,
+    "false_positive_rate": 0.5570363225745742,
+    "cost_per_transaction": 3.236520184829873,
+    "rows": 88081
+  },
+  "baseline_thresholds": {
+    "review": 0.01,
+    "block": 0.3120588235294118
+  },
+  "warning": "Anonymized IEEE features are not verified authorization-time inputs"
+}

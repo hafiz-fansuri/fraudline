@@ -4,13 +4,17 @@ A fraud detection MLOps project with a transaction investigation desk: real trai
 
 [Open the Vercel demo](https://fraudline.vercel.app) · [GitHub Actions](https://github.com/hafiz-fansuri/fraudline/actions)
 
-**Current data is synthetic.** IEEE-CIS data has not been supplied. Synthetic metrics demonstrate the pipeline; they do not establish real fraud detection quality. This is a portfolio demonstration, not a banking service.
+**The model is trained on the supplied IEEE-CIS dataset:** 590,540 labeled transactions with past-only history features. The public scenario lab uses authored synthetic inputs. This is an educational portfolio workbench, not a banking authorization service.
 
-![Fraudline transaction investigation desk](docs/desk-desktop.jpg)
+[A–Z learning guide](docs/learning-guide.md) · [Actual training code](fraudline/pipeline.py) · [IEEE verification](docs/ieee-verification.md) · [Model card](docs/model-card.md)
+
+The redesigned interface provides investigation, editable synthetic scenarios, separate model/policy explanations, model evidence and nine-factor coverage. The learning view opens the full guide and actual training source.
+
+![IEEE risk investigation workbench](docs/ieee-workbench.jpg)
 
 ## Executed verification
 
-The local project has passed 12 tests (71% overall coverage; 90% API and 86% feature/data coverage). The Docker/Postgres path measured warm HTTP p95 at 62.3 ms for 60 requests with four concurrent clients on the documented Windows host. This is a small local benchmark, not a production SLA. See [verification evidence](docs/verification.md).
+See [current IEEE execution evidence](docs/ieee-verification.md). The [earlier synthetic verification](docs/verification.md) documents the original Docker/Postgres exercise; its latency and coverage numbers are historical, not measurements of the new IEEE model.
 
 The complete local stack was started and checked. A synthetic traffic exercise produced 600 audited predictions, 200 delayed labels, an Evidently report and a drift alert. A previous model was served after rollback and the original champion was restored. The scoring application and UI are hosted on Vercel; training and scheduled monitoring remain in the local operations stack.
 
@@ -48,7 +52,7 @@ This generates ignored local passwords and starts Postgres, MLflow, bootstrap tr
 - Transactional hash-linked audit records using SQLite locally or Postgres in Compose. The Compose scoring role cannot update/delete scoring events. This is tamper evidence, not administrator-proof immutable storage.
 - Delayed-label import and performance metrics; scheduled drift reports with Evidently HTML, local alerts, optional webhook delivery, and retraining only when newly prepared labeled data is available.
 - DVC cached stages, MLflow tracking/registry when configured, Prometheus/Grafana, CI definition, Render deployment blueprint and test suite.
-- Responsive investigation UI with seeded replay, manual test scoring, reason contributions, evaluation artifacts, model history, monitoring and computed synthetic drift scenarios.
+- Responsive investigation workbench with editable scenarios, searchable cases, decision filtering, TreeSHAP contributions, explicit contextual findings, model evidence, signal coverage and an A–Z learning guide.
 
 ## Reproduce with DVC
 

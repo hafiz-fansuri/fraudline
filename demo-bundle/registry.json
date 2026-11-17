@@ -1,27 +1,22 @@
 {
-  "champion": "fl-20261116143622-8ccca6",
+  "champion": "fl-20261117072348-496b08",
   "previous": null,
   "history": [
     {
-      "version": "fl-20261116143622-8ccca6",
+      "version": "fl-20261117072348-496b08",
       "promoted": true,
-      "at": "2026-11-16T14:36:22.946781+00:00",
+      "at": "2026-11-17T07:23:50.811124+00:00",
       "metrics": {
-        "pr_auc": 0.1667037129816776,
-        "roc_auc": 0.7936493229738852,
-        "brier": 0.02180506287462688,
-        "recall": 0.5348837209302325,
-        "false_positive_rate": 0.15765509391007398,
-        "cost_per_transaction": 2.267261111111111,
-        "rows": 1800
+        "pr_auc": 0.4747476386112403,
+        "roc_auc": 0.8823421240985709,
+        "brier": 0.023526624511131012,
+        "recall": 0.7661129568106312,
+        "false_positive_rate": 0.15917085279343082,
+        "cost_per_transaction": 2.323469705611671,
+        "rows": 88013
       },
-      "data_source": "synthetic",
-      "mlflow_version": "1"
-    },
-    {
-      "action": "rollback",
-      "version": "fl-20261116143622-8ccca6",
-      "at": "2026-11-16T14:53:59.567314+00:00"
+      "data_source": "ieee-cis",
+      "mlflow_version": null
     }
   ]
 }

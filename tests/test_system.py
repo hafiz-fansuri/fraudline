@@ -10,7 +10,16 @@ from fastapi.testclient import TestClient
 from pandera.errors import SchemaErrors
 
 from fraudline import pipeline
-from fraudline.data import FEATURES, features, import_ieee, split_time, synthetic, validate
+from fraudline.data import (
+    ANON_NUMERIC,
+    FEATURES,
+    MATCH_FIELDS,
+    features,
+    import_ieee,
+    split_time,
+    synthetic,
+    validate,
+)
 from fraudline.model import Model
 from fraudline.monitor import drift
 from fraudline.store import Store
@@ -72,9 +81,26 @@ def test_ieee_join_fanout_rejected(tmp_path):
             "card6": ["debit"],
             "dist1": [2],
             "isFraud": [0],
+            **{
+                name: [None]
+                for name in [
+                    "card1",
+                    "card2",
+                    "card3",
+                    "card5",
+                    "addr1",
+                    "addr2",
+                    "P_emaildomain",
+                    "R_emaildomain",
+                    *ANON_NUMERIC,
+                    *MATCH_FIELDS,
+                ]
+            },
         }
     ).to_csv(tmp_path / "train_transaction.csv", index=False)
-    pd.DataFrame({"TransactionID": [1, 1]}).to_csv(tmp_path / "train_identity.csv", index=False)
+    pd.DataFrame({"TransactionID": [1, 1], "DeviceType": ["desktop", "mobile"]}).to_csv(
+        tmp_path / "train_identity.csv", index=False
+    )
     with pytest.raises(pd.errors.MergeError):
         import_ieee(tmp_path)
 
@@ -138,7 +164,7 @@ def test_api_contract(bundle, tmp_path):
             {"card_number": "123"},
         ]:
             assert client.post("/predict", json=sample | bad).status_code == 422
-        assert client.post("/predict", content=b"x" * 66000).status_code == 413
+        assert client.post("/predict", content=b"x" * 262145).status_code == 413
         assert "fraudline_request_seconds" in client.get("/metrics").text
         assert client.post("/admin/retrain").status_code == 404
     store = Store(db)

@@ -109,7 +109,9 @@ class Store:
                     labels, labels.c.prediction_id == events.c.id
                 )
             ).all()
-        rows = [row for row in rows if json.loads(row.payload)["prediction"]["model_version"] == model_version]
+        rows = [
+            row for row in rows if json.loads(row.payload)["prediction"]["model_version"] == model_version
+        ]
         if len(rows) < 30 or len({r.is_fraud for r in rows}) < 2:
             return {"status": "insufficient_labels", "labeled_rows": len(rows)}
         from sklearn.metrics import average_precision_score, brier_score_loss

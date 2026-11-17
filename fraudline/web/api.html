@@ -1,10 +1,92 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fraudline — API reference</title><link rel="stylesheet" href="/assets/style.css"></head><body><header class="masthead"><a class="wordmark" href="/">fraudline</a><span class="environment">Synthetic data demonstration</span></header><main class="shell"><div class="section-title"><h1>API reference.</h1><p>A small prediction contract. No public lifecycle mutation endpoints.</p></div><div class="evidence-layout"><section><h2>Score one transaction</h2><p><code>POST /predict</code></p><pre><code>{
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Fraudline API reference</title>
+    <link rel="stylesheet" href="/assets/style.css?v=20261117-2" />
+  </head>
+  <body>
+    <main class="guide">
+      <a href="/">← Workbench</a>
+      <h1>API reference</h1>
+      <p>
+        Use authored synthetic values only. No real payment or personal
+        information.
+      </p>
+      <h2>Score a transaction</h2>
+      <p>
+        <code>POST /predict</code> accepts a transaction object. Get complete
+        examples, including history and context, from
+        <a href="/api/scenarios">/api/scenarios</a>.
+      </p>
+      <pre>
+{
   "transaction_id": "TEST-001",
-  "amount": 249.00,
-  "time_offset": 7200,
+  "amount": 75.0,
+  "time_offset": 907200,
   "product": "W",
   "network": "visa",
   "card_type": "debit",
-  "distance": 280,
-  "identity_present": true
-}</code></pre><p>The response includes probability, approve/review/block decision, model version, thresholds, reason contributions and a persisted prediction ID.</p><p><code>POST /predict/batch</code> accepts an object with a <code>transactions</code> array of 1–100 entries using this same contract.</p><p><a href="/openapi.json">Download the full OpenAPI schema</a></p></section><section><h2>Service endpoints</h2><dl class="fact-list"><div><dt>GET /health</dt><dd>Liveness</dd></div><div><dt>GET /ready</dt><dd>Verified model readiness; 503 when no model is loaded</dd></div><div><dt>GET /metrics</dt><dd>Prometheus request, error, latency and drift metrics</dd></div><div><dt>GET /api/model</dt><dd>Model metadata, evaluation and registry history</dd></div><div><dt>GET /api/monitoring</dt><dd>Latest scheduled monitoring report</dd></div></dl><p class="footnote">Requests are limited to 64 KiB and 120 POSTs per client per minute in a single process. Invalid inputs return 422; excessive payloads 413; throttled requests 429. Send illustrative values only. Reason contributions use uncalibrated log-odds and are not causal explanations.</p></section></div><a class="text-link" href="/">Return to the transaction desk</a></main></body></html>
+  "identity_present": true,
+  "account_id": "demo-account",
+  "device_type": "desktop",
+  "history": [],
+  "context": {"ip_country": "MY", "billing_country": "MY"}
+}</pre
+      >
+      <p>
+        The response separates calibrated <code>probability</code>,
+        <code>model_decision</code> and final <code>decision</code>. It includes
+        thresholds, model version, TreeSHAP reasons, contextual signals,
+        computed history and a prediction ID. Context can escalate the decision
+        without changing probability. Supplied history is illustrative;
+        production needs a trusted source.
+      </p>
+      <p>
+        <code>POST /predict/batch</code> accepts
+        <code>{"transactions": [...]}</code> with 1–100 entries. Each event
+        accepts at most 200 history items. Benchmark C/D/M fields are
+        whitelisted; arbitrary features and labels are rejected.
+      </p>
+      <h2>Read endpoints</h2>
+      <ul>
+        <li><a href="/ready">/ready</a>: verified model readiness</li>
+        <li><a href="/health">/health</a>: process liveness</li>
+        <li>
+          <a href="/api/model">/api/model</a>: metadata, evaluation, registry
+        </li>
+        <li><a href="/api/factors">/api/factors</a>: nine-factor coverage</li>
+        <li>
+          <a href="/api/scenarios">/api/scenarios</a>: authored synthetic inputs
+        </li>
+        <li>
+          <a href="/api/monitoring">/api/monitoring</a>: latest local scheduled
+          report, if present
+        </li>
+        <li>
+          <a href="/api/drift">/api/drift</a>: precomputed synthetic drift
+          exercise, if present
+        </li>
+        <li><a href="/metrics">/metrics</a>: Prometheus service metrics</li>
+        <li>
+          <a href="/openapi.json">/openapi.json</a>: complete typed request
+          schema
+        </li>
+      </ul>
+      <h2>Validation and limits</h2>
+      <p>
+        Invalid payloads return 422. Bodies above 256 KiB return 413. A demo
+        per-process limit of 120 POST requests per client per minute returns
+        429. This is not distributed abuse protection. There are no public
+        lifecycle mutation endpoints. Public Vercel audit storage is temporary
+        and not a durable ledger.
+      </p>
+      <p>
+        Contribution values are raw log-odds associations before calibration,
+        not percentage-point effects or causal explanations.
+      </p>
+      <a href="/guide">Read the full A–Z learning guide ↗</a>
+    </main>
+  </body>
+</html>

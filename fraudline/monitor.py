@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import jensenshannon
 
-from fraudline.data import FEATURES, features, synthetic
+from fraudline.data import FEATURES, add_history, features, synthetic
 from fraudline.model import Model
 from fraudline.pipeline import ART, ROOT, records, registry, train, write_json
 from fraudline.store import Store
@@ -24,7 +24,7 @@ def drift(reference, current, minimum=100):
             "drifted": False,
             "features": [],
         }
-    a, b = features(records(reference)), features(records(current))
+    a, b = features(reference), features(current)
     result = []
     for name in FEATURES:
         edges = np.unique(np.quantile(a[name], np.linspace(0, 1, 11)))
@@ -48,7 +48,7 @@ def drift(reference, current, minimum=100):
 
 def demo_reports():
     reference = pd.read_parquet(ART / "reference.parquet")
-    normal = synthetic(1500, 123)
+    normal = add_history(synthetic(1500, 123))
     shifted = normal.copy()
     shifted["amount"] *= 8
     shifted["distance"] = 1800.0
@@ -119,7 +119,7 @@ def monitor_once(retrain=False):
         from evidently.presets import DataDriftPreset
 
         snapshot = Report([DataDriftPreset()]).run(
-            reference_data=features(records(reference)), current_data=features(records(current))
+            reference_data=features(reference), current_data=features(current)
         )
         path = ART / "reports/evidently.html"
         path.parent.mkdir(parents=True, exist_ok=True)

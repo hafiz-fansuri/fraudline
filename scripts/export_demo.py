@@ -1,4 +1,4 @@
-"""Export only a synthetic champion and its evidence for an ephemeral hosted demo."""
+"""Export a verified model and aggregate evidence; never export training rows or references."""
 
 import json
 import shutil
@@ -10,8 +10,6 @@ from fraudline.pipeline import ART, registry
 state = registry()
 folder = ART / "models" / state["champion"]
 model = Model(folder)
-if model.meta["data_source"] != "synthetic":
-    raise ValueError("Only synthetic model bundles may be exported to the public demo")
 out = Path("demo-bundle")
 model_root = (out / "models").resolve()
 if model_root.exists():
@@ -25,7 +23,12 @@ target.mkdir(parents=True, exist_ok=True)
 for name in ["model.txt", "metadata.json", "evaluation.json"]:
     shutil.copy2(folder / name, target / name)
 (out / "reports").mkdir(exist_ok=True)
-shutil.copy2(ART / "reports/demo-drift.json", out / "reports/demo-drift.json")
+for name in ["demo-drift.json", "synthetic-tests.json"]:
+    source = ART / "reports" / name
+    if source.exists():
+        shutil.copy2(source, out / "reports" / name)
+    elif (out / "reports" / name).exists():
+        (out / "reports" / name).unlink()
 (out / "registry.json").write_text(
     json.dumps(
         {
@@ -36,4 +39,4 @@ shutil.copy2(ART / "reports/demo-drift.json", out / "reports/demo-drift.json")
         indent=2,
     )
 )
-print(f"Exported verified synthetic bundle {state['champion']}")
+print(f"Exported verified {model.meta['data_source']} bundle {state['champion']}; no dataset rows")

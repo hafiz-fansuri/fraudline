@@ -1,0 +1,129 @@
+{
+  "model_version": "fl-20261117072348-496b08",
+  "passed": 11,
+  "total": 11,
+  "results": [
+    {
+      "scenario": "normal",
+      "expected_factor": null,
+      "activated_factors": [],
+      "passed": true,
+      "model_probability": 0.017483,
+      "model_decision": "approve",
+      "final_decision": "approve"
+    },
+    {
+      "scenario": "amount",
+      "expected_factor": "amount",
+      "activated_factors": [
+        "amount"
+      ],
+      "passed": true,
+      "model_probability": 0.01805,
+      "model_decision": "approve",
+      "final_decision": "review"
+    },
+    {
+      "scenario": "card-testing",
+      "expected_factor": "velocity",
+      "activated_factors": [
+        "velocity"
+      ],
+      "passed": true,
+      "model_probability": 0.030309,
+      "model_decision": "approve",
+      "final_decision": "review"
+    },
+    {
+      "scenario": "impossible-travel",
+      "expected_factor": "location",
+      "activated_factors": [
+        "location"
+      ],
+      "passed": true,
+      "model_probability": 0.018712,
+      "model_decision": "approve",
+      "final_decision": "block"
+    },
+    {
+      "scenario": "country-mismatch",
+      "expected_factor": "location",
+      "activated_factors": [
+        "location"
+      ],
+      "passed": true,
+      "model_probability": 0.017483,
+      "model_decision": "approve",
+      "final_decision": "review"
+    },
+    {
+      "scenario": "new-device",
+      "expected_factor": "device",
+      "activated_factors": [
+        "device"
+      ],
+      "passed": true,
+      "model_probability": 0.016114,
+      "model_decision": "approve",
+      "final_decision": "review"
+    },
+    {
+      "scenario": "odd-hour",
+      "expected_factor": "time",
+      "activated_factors": [
+        "time"
+      ],
+      "passed": true,
+      "model_probability": 0.014689,
+      "model_decision": "approve",
+      "final_decision": "review"
+    },
+    {
+      "scenario": "merchant",
+      "expected_factor": "merchant",
+      "activated_factors": [
+        "merchant"
+      ],
+      "passed": true,
+      "model_probability": 0.017483,
+      "model_decision": "approve",
+      "final_decision": "review"
+    },
+    {
+      "scenario": "account-takeover",
+      "expected_factor": "account",
+      "activated_factors": [
+        "account",
+        "amount"
+      ],
+      "passed": true,
+      "model_probability": 0.01805,
+      "model_decision": "approve",
+      "final_decision": "review"
+    },
+    {
+      "scenario": "shared-device",
+      "expected_factor": "network",
+      "activated_factors": [
+        "device",
+        "network"
+      ],
+      "passed": true,
+      "model_probability": 0.017483,
+      "model_decision": "approve",
+      "final_decision": "review"
+    },
+    {
+      "scenario": "identity",
+      "expected_factor": "identity",
+      "activated_factors": [
+        "identity"
+      ],
+      "passed": true,
+      "model_probability": 0.007714,
+      "model_decision": "approve",
+      "final_decision": "review"
+    }
+  ],
+  "interpretation": "Synthetic signal/serving checks only; not a real-world classifier accuracy estimate"
+}

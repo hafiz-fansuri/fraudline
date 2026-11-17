@@ -6,6 +6,7 @@ htmlcov/
 .ruff_cache/
 .env
 .env*
+runs/
 data/
 runtime/
 mlruns/

@@ -15,7 +15,17 @@ import lightgbm as lgb
 import numpy as np
 import pandas as pd
 
-from fraudline.data import FEATURES, INPUTS, features, import_ieee, sha256, split_time, synthetic, validate
+from fraudline.data import (
+    FEATURES,
+    INPUTS,
+    add_history,
+    features,
+    import_ieee,
+    sha256,
+    split_time,
+    synthetic,
+    validate,
+)
 from fraudline.model import Model
 
 ROOT = Path(os.environ.get("FRAUDLINE_HOME", ".")).resolve()
@@ -54,7 +64,7 @@ def registry():
 
 
 def records(frame):
-    return frame[INPUTS].replace({np.nan: None}).to_dict("records")
+    return frame.reindex(columns=INPUTS).replace({np.nan: None}).to_dict("records")
 
 
 def costs(y, p, amount, review, block):
@@ -92,16 +102,31 @@ def can_promote(candidate, incumbent):
     )
 
 
+def choose_thresholds(frame, probabilities):
+    options = np.linspace(0.01, 0.8, 35)
+    _, review, block = min(
+        (costs(frame.is_fraud.to_numpy(), probabilities, frame.amount.to_numpy(), a, b), float(a), float(b))
+        for a in options
+        for b in options
+        if a < b
+    )
+    return {"review": review, "block": block}
+
+
 def prepare(ieee=None, rows=12000, seed=42):
     data = ROOT / "data"
     data.mkdir(parents=True, exist_ok=True)
-    frame = import_ieee(ieee) if ieee else validate(synthetic(rows, seed))
+    frame = add_history(import_ieee(ieee) if ieee else validate(synthetic(rows, seed)))
     frame.to_parquet(data / "transactions.parquet", index=False)
     lineage = {
         "data_source": "ieee-cis" if ieee else "synthetic",
         "rows": len(frame),
         "seed": seed,
         "data_sha256": sha256(data / "transactions.parquet"),
+        "fraud_rows": int(frame.is_fraud.sum()),
+        "fraud_rate": float(frame.is_fraud.mean()),
+        "history_semantics": "Strictly earlier timestamps only; card/address composite is a proxy, not verified account identity",
+        "feature_schema_version": 2,
     }
     if ieee:
         lineage["raw_sha256"] = {
@@ -127,60 +152,54 @@ def _train(tune=False):
     if sha256(ROOT / "data/transactions.parquet") != lineage["data_sha256"]:
         raise ValueError("Dataset hash changed; run prepare again")
     training, calibration, promotion, final = split_time(frame)
-    x, y = features(records(training)), training.is_fraud
+    x, y = features(training), training.is_fraud
     baseline = make_pipeline(StandardScaler(), LogisticRegression(max_iter=500, random_state=42))
     baseline.fit(x, y)
     params = {
         "objective": "binary",
-        "n_estimators": 100,
+        "n_estimators": 300 if lineage["data_source"] == "ieee-cis" else 100,
         "learning_rate": 0.05,
-        "num_leaves": 15,
+        "num_leaves": 31 if lineage["data_source"] == "ieee-cis" else 15,
         "min_child_samples": 40,
         "reg_lambda": 2.0,
         "verbosity": -1,
-        "n_jobs": 1,
+        "n_jobs": 2,
         "random_state": 42,
         "deterministic": True,
         "force_col_wise": True,
+        "max_bin": 127,
     }
     if tune:
         import optuna
 
         study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=42))
 
+        cut = np.sort(training.time_offset.unique())[int(training.time_offset.nunique() * 0.8)]
+        tuning_train = training.time_offset < cut
+        tuning_valid = ~tuning_train
+
         def objective(trial):
             choices = {
                 "num_leaves": trial.suggest_categorical("num_leaves", [7, 15, 31]),
                 "reg_lambda": trial.suggest_float("reg_lambda", 1.0, 10.0),
             }
-            m = lgb.LGBMClassifier(**(params | choices)).fit(x, y)
-            return average_precision_score(
-                calibration.is_fraud, m.predict_proba(features(records(calibration)))[:, 1]
-            )
+            m = lgb.LGBMClassifier(**(params | choices)).fit(x.loc[tuning_train], y.loc[tuning_train])
+            return average_precision_score(y.loc[tuning_valid], m.predict_proba(x.loc[tuning_valid])[:, 1])
 
         study.optimize(objective, n_trials=6)
         params.update(study.best_params)
     classifier = lgb.LGBMClassifier(**params).fit(x, y)
-    raw = classifier.booster_.predict(features(records(calibration)), raw_score=True, num_threads=1)
+    raw = classifier.booster_.predict(features(calibration), raw_score=True, num_threads=1)
     calibrator = LogisticRegression(C=10, random_state=42).fit(
         np.asarray(raw).reshape(-1, 1), calibration.is_fraud
     )
     probabilities = calibrator.predict_proba(np.asarray(raw).reshape(-1, 1))[:, 1]
-    options = np.linspace(0.01, 0.8, 35)
-    _, review, block = min(
-        (
-            costs(calibration.is_fraud.to_numpy(), probabilities, calibration.amount.to_numpy(), a, b),
-            float(a),
-            float(b),
-        )
-        for a in options
-        for b in options
-        if a < b
-    )
+    thresholds = choose_thresholds(calibration, probabilities)
+    baseline_thresholds = choose_thresholds(calibration, baseline.predict_proba(features(calibration))[:, 1])
     version = f"fl-{datetime.now(timezone.utc):%Y%m%d%H%M%S}-{uuid.uuid4().hex[:6]}"
     folder = ART / "models" / version
     folder.mkdir(parents=True)
-    training[INPUTS].to_parquet(folder / "reference.parquet", index=False)
+    training.reindex(columns=INPUTS).to_parquet(folder / "reference.parquet", index=False)
     classifier.booster_.save_model(str(folder / "model.txt"))
     try:
         commit = subprocess.check_output(
@@ -195,7 +214,13 @@ def _train(tune=False):
         "git_commit": commit,
         "features": FEATURES,
         "model_sha256": sha256(folder / "model.txt"),
-        "thresholds": {"review": review, "block": block},
+        "thresholds": thresholds,
+        "parameters": params,
+        "feature_importance_gain": dict(
+            zip(
+                FEATURES, classifier.booster_.feature_importance(importance_type="gain").tolist(), strict=True
+            )
+        ),
         "calibration": {"slope": float(calibrator.coef_[0, 0]), "intercept": float(calibrator.intercept_[0])},
         "cost_assumptions": {"review": 3, "review_missed_fraction": 0.2, "false_block": 15},
         "splits": {
@@ -209,18 +234,18 @@ def _train(tune=False):
     }
     write_json(folder / "metadata.json", metadata)
     model = Model(folder)
-    candidate = evaluate(promotion, model.probabilities(records(promotion)), metadata["thresholds"])
+    candidate = evaluate(promotion, model.probabilities(promotion), metadata["thresholds"])
     state = registry()
     incumbent = None
     if state["champion"]:
         old = Model(ART / "models" / state["champion"])
         if old.meta["data_source"] != lineage["data_source"]:
             raise ValueError("Do not compare synthetic and IEEE champions; use a separate FRAUDLINE_HOME")
-        incumbent = evaluate(promotion, old.probabilities(records(promotion)), old.meta["thresholds"])
+        incumbent = evaluate(promotion, old.probabilities(promotion), old.meta["thresholds"])
     promoted = can_promote(candidate, incumbent)
-    final_metrics = evaluate(final, model.probabilities(records(final)), metadata["thresholds"])
+    final_metrics = evaluate(final, model.probabilities(final), metadata["thresholds"])
     slices = {
-        str(key): evaluate(group, model.probabilities(records(group)), metadata["thresholds"])
+        str(key): evaluate(group, model.probabilities(group), metadata["thresholds"])
         for key, group in final.groupby("product")
         if len(group) >= 50 and group.is_fraud.nunique() == 2
     }
@@ -232,9 +257,8 @@ def _train(tune=False):
         "promoted": promoted,
         "final_test": final_metrics,
         "slices": slices,
-        "baseline": evaluate(
-            final, baseline.predict_proba(features(records(final)))[:, 1], metadata["thresholds"]
-        ),
+        "baseline": evaluate(final, baseline.predict_proba(features(final))[:, 1], baseline_thresholds),
+        "baseline_thresholds": baseline_thresholds,
         "warning": "Synthetic scores do not estimate real fraud performance"
         if lineage["data_source"] == "synthetic"
         else "Anonymized IEEE features are not verified authorization-time inputs",
