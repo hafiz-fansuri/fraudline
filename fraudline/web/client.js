@@ -90,7 +90,7 @@ function svg(content) {
 }
 function resetResult() {
   state.active = null;
-  $("#result-panel").className = "result-panel panel";
+  $("#result-panel").className = "result-panel";
   $("#result-content").innerHTML = emptyResult;
   $("#result-state").textContent = "AWAITING A CHECK";
 }
@@ -167,15 +167,14 @@ function renderResult(entry, focus = true) {
   state.active = entry;
   const { result, input, title } = entry;
   const copy = decisionCopy[result.decision];
-  $("#result-panel").className =
-    `result-panel panel has-result ${result.decision}`;
+  $("#result-panel").className = `result-panel has-result ${result.decision}`;
   $("#result-state").textContent = "CHECK COMPLETE";
   const icon =
     result.decision === "approve"
       ? '<path d="m5 12 4 4L19 6"/>'
       : '<circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16h.01"/>';
   $("#result-content").innerHTML =
-    `<p class="outcome-kicker">${svg(icon)}${escapeHTML(copy.label.toUpperCase())}</p><h3 id="result-title" tabindex="-1">${escapeHTML(copy.title)}</h3><p class="result-subtitle">${escapeHTML(copy.description)}</p><div class="outcome-score"><div><span>MODEL RISK ESTIMATE</span><strong>${(result.probability * 100).toFixed(1)}<small>%</small></strong></div><p>The estimate stays separate from the contextual checks below.</p></div><h4 class="receipt-section-title">What stood out</h4>${renderFindings(result)}${result.model_decision !== "approve" ? '<div class="finding">' + svg(icon) + "<div><strong>The model crossed a decision threshold</strong><p>Learned transaction patterns also suggest review. This is an estimate, not proof that the transaction is fraudulent.</p></div></div>" : ""}<div class="next-step"><h4>YOUR NEXT STEP</h4><p>${escapeHTML(copy.next)}</p></div><details class="receipt-details"><summary>How to read this result <span aria-hidden="true">+</span></summary><p class="field-help">The trained model suggests an action using probability thresholds. Contextual checks can make that action more cautious without changing the probability. The most cautious outcome is shown above.</p><dl><div><dt>Model suggestion</dt><dd>${escapeHTML(decisionCopy[result.model_decision].label)}</dd></div><div><dt>Model thresholds</dt><dd>Review from ${percent(result.thresholds.review)} · Pause from ${percent(result.thresholds.block)}</dd></div><div><dt>Model version</dt><dd>${escapeHTML(result.model_version)} · ${escapeHTML(result.data_source)}</dd></div><div><dt>Check reference</dt><dd>${escapeHTML(result.prediction_id)}</dd></div></dl></details><button type="button" class="button button-secondary download-button" id="download-summary">Save this summary ${svg('<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>')}</button><p class="receipt-input">${escapeHTML(title)} · ${money(input.amount)}<br>Synthetic example · No real payment was processed</p>`;
+    `<h3 id="result-title" tabindex="-1">${escapeHTML(copy.title)}</h3><p class="result-subtitle">${escapeHTML(copy.description)}</p><p class="model-estimate">Model risk estimate <strong>${percent(result.probability)}</strong></p><h4 class="receipt-section-title">What stood out</h4>${renderFindings(result)}${result.model_decision !== "approve" ? '<div class="finding">' + svg(icon) + "<div><strong>The model crossed a decision threshold</strong><p>Learned transaction patterns also suggest review. This is an estimate, not proof that the transaction is fraudulent.</p></div></div>" : ""}<div class="next-step"><h4>Your next step</h4><p>${escapeHTML(copy.next)}</p></div><details class="receipt-details"><summary>How to read this result ${svg('<path d="m6 9 6 6 6-6"/>')}</summary><p class="field-help">The trained model suggests an action using probability thresholds. Contextual checks can make that action more cautious without changing the probability. The most cautious outcome is shown above.</p><dl><div><dt>Model suggestion</dt><dd>${escapeHTML(decisionCopy[result.model_decision].label)}</dd></div><div><dt>Model thresholds</dt><dd>Review from ${percent(result.thresholds.review)} · Pause from ${percent(result.thresholds.block)}</dd></div><div><dt>Model version</dt><dd>${escapeHTML(result.model_version)} · ${escapeHTML(result.data_source)}</dd></div><div><dt>Check reference</dt><dd>${escapeHTML(result.prediction_id)}</dd></div></dl></details><button type="button" class="button button-secondary download-button" id="download-summary">Save this summary ${svg('<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>')}</button><p class="receipt-input">${escapeHTML(title)} · ${money(input.amount)}<br>Synthetic example · No real payment was processed</p>`;
   $("#download-summary").addEventListener("click", downloadSummary);
   $("#result-announcement").textContent =
     `${copy.label}. Model risk estimate ${percent(result.probability)}. ${result.signals.length} contextual warnings. A suggested next step is available.`;
@@ -354,3 +353,31 @@ async function initialize() {
 }
 $("#retry").addEventListener("click", initialize);
 initialize();
+
+const menuToggle = $("#menu-toggle");
+function closeNavigation() {
+  $(".site-header").classList.remove("nav-open");
+  menuToggle.setAttribute("aria-expanded", "false");
+  menuToggle.setAttribute("aria-label", "Open navigation");
+}
+menuToggle.addEventListener("click", () => {
+  const open = menuToggle.getAttribute("aria-expanded") !== "true";
+  $(".site-header").classList.toggle("nav-open", open);
+  menuToggle.setAttribute("aria-expanded", String(open));
+  menuToggle.setAttribute(
+    "aria-label",
+    open ? "Close navigation" : "Open navigation",
+  );
+});
+$("#client-navigation").addEventListener("click", (event) => {
+  if (event.target.closest("a")) closeNavigation();
+});
+document.addEventListener("keydown", (event) => {
+  if (
+    event.key === "Escape" &&
+    menuToggle.getAttribute("aria-expanded") === "true"
+  ) {
+    closeNavigation();
+    menuToggle.focus();
+  }
+});

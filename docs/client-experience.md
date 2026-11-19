@@ -2,11 +2,11 @@
 
 The public homepage `/` serves the new client-facing interface. The original technical application remains at `/workbench`, with its existing model evidence, scenario suite, operations and learning views. The training model and prediction API are unchanged. This is two interfaces on one existing free deployment, not a second paid service.
 
-Files: `fraudline/web/client.html`, `client.css` and `client.js`. No frontend framework, runtime dependency, external font or tracking script was added. `api.py` changes only the homepage file and adds the preserved workbench route. The learning guide's return link now targets `/workbench#learn`.
+Files: `fraudline/web/client.html`, `client.css` and `client.js`. Sora is self-hosted under `web/fonts/` with its OFL license. No frontend framework, runtime package, third-party font request or tracking script was added. The original routing change in `api.py` preserves the workbench; the 19 November refinement does not change the API. The learning guide's return link targets `/workbench#learn`.
 
 ## Design
 
-UI/UX Pro Max's verified Cyberpunk UI style informs the dark charcoal surface, lime action, cyan details and magenta HX signature. The implementation intentionally uses restrained glow and static SVG linework rather than glitch effects. The client workflow stays focused on examples, editable details and readable outcomes; technical model internals remain in the owner workbench.
+The dark charcoal, lime action, cyan detail and magenta HX identity originated with UI/UX Pro Max. The user approved an Impeccable desktop/mobile preview on 19 November 2026: bolder Sora lettering, a checker in the first desktop viewport and cleaner surfaces. The ornamental radar and decorative section labels are removed. The client workflow stays focused on examples, editable details and readable outcomes; technical model internals remain in the owner workbench.
 
 ## Useful interactions
 
@@ -28,6 +28,14 @@ Browser checks: everyday example suggested no added review; the travel example s
 Responsive checks at 1440px desktop, 375px phone and 812px landscape passed. Phone and landscape had no page-wide horizontal overflow. A mobile text-joining issue caused by hidden line breaks was corrected. The HX footer mark was visually inspected. See `client-desktop.jpg` for the client design.
 
 Measured text contrast on dark surfaces: primary 16.09:1, secondary 8.09:1, cyan 12.35:1, lime 15.51:1; the primary-button text pair is 14.44:1. Control boundaries are 3.8:1. These checks do not constitute a complete accessibility certification. Network failure messaging was implemented but not separately fault-injected in the browser.
+
+## Approved refinement verification — 19 November 2026
+
+30 regression tests passed again, along with JavaScript syntax checking. All 27 static client selectors and unique element IDs were checked after the layout move. The original technical workbench HTML, CSS, JavaScript, backend and model artifacts have no changes in this refinement.
+
+Browser acceptance covered 1440px desktop and 375px phone, with no page-wide horizontal overflow. The self-hosted display renders at 86.4px on the desktop check. The everyday example returned 1.7% and no added review; the travel example returned 1.9% and pause/verify. Editing the amount cleared its prior receipt. The disclosure exposes all eleven cases. Mobile navigation opens, closes after selecting a link and supports Escape. The updated screenshot reflects the implemented page, with an empty initial result rather than a fabricated sample prediction.
+
+Impeccable's mechanical detector ran once. It could not resolve `/assets/client.css` through the FastAPI mount and consequently reported a false flat-type warning; the actual computed typography was verified in the browser. Its other warning flagged retained, approved educational copy. No detector configuration or unrelated design context was repaired. This was a bounded desktop/mobile pass, not an accessibility certification or a new model assessment.
 
 ## Boundaries
 

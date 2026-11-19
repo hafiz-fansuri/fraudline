@@ -9,8 +9,15 @@
       content="A clearer way to explore transaction risk. Try a guided example, understand the warning signals, and see the suggested next step."
     />
     <title>Fraudline — Clarity before the next transaction</title>
-    <link rel="stylesheet" href="/assets/client.css?v=1" />
-    <script src="/assets/client.js?v=1" defer></script>
+    <link
+      rel="preload"
+      href="/assets/fonts/Sora-variable.ttf"
+      as="font"
+      type="font/ttf"
+      crossorigin
+    />
+    <link rel="stylesheet" href="/assets/client.css?v=20261119" />
+    <script src="/assets/client.js?v=20261119" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#check">Skip to transaction check</a>
@@ -21,21 +28,29 @@
             <path d="M3 3h22v6H9v5h12v6H9v5H3z" /></svg
           >fraudline<span class="brand-period">.</span></a
         >
-        <nav aria-label="Main navigation">
+        <nav id="client-navigation" aria-label="Main navigation">
           <a href="#check">Check a transaction</a><a href="#how">How it works</a
           ><a href="#questions">Questions</a>
         </nav>
-        <span class="demo-tag"><i aria-hidden="true"></i>Interactive demo</span>
+        <span class="demo-tag"><i aria-hidden="true"></i>Interactive demo</span
+        ><button
+          type="button"
+          class="menu-toggle"
+          id="menu-toggle"
+          aria-label="Open navigation"
+          aria-expanded="false"
+          aria-controls="client-navigation"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 7h18M3 12h18M3 17h18" />
+          </svg>
+        </button>
       </header>
-
       <main>
         <section class="hero" aria-labelledby="hero-title">
           <div class="hero-copy">
-            <p class="eyebrow">
-              <span aria-hidden="true">///</span> A LITTLE MORE CERTAINTY
-            </p>
             <h1 id="hero-title">
-              Clarity before<br />the next <span>transaction.</span>
+              Clarity before<br />the next<br /><span>transaction.</span>
             </h1>
             <p class="hero-description">
               See what stands out. Understand why.<br />Know what to check next.
@@ -49,85 +64,53 @@
               Synthetic examples. No payment or personal details needed.
             </p>
           </div>
-          <div class="signal-art" aria-hidden="true">
-            <div class="art-grid"></div>
-            <svg class="signal-orbit" viewBox="0 0 420 370">
-              <defs>
-                <linearGradient id="orbit-color" x1="0" x2="1">
-                  <stop stop-color="#c8ff78" />
-                  <stop offset="1" stop-color="#72e8e2" />
-                </linearGradient>
-              </defs>
-              <circle cx="210" cy="180" r="142" />
-              <circle cx="210" cy="180" r="111" />
-              <circle cx="210" cy="180" r="73" />
-              <path
-                class="orbit-path"
-                d="M68 180a142 142 0 0 1 250-92M321 270a142 142 0 0 1-213 7"
-              />
-              <path
-                class="crosshair"
-                d="M210 23v20M210 317v20M53 180h20M347 180h20"
-              />
-              <path class="pulse" d="M110 180h46l18-28 27 61 26-83 22 50h61" />
-              <circle class="orbit-dot" cx="318" cy="88" r="5" />
-              <circle class="orbit-dot" cx="108" cy="277" r="5" /></svg
-            ><span class="art-label art-label-top">INPUT → UNDERSTANDING</span>
-            <div class="orbit-caption">
-              <span>LESS NOISE.</span><strong>More clarity.</strong
-              ><span class="art-coordinate">01 / TRANSACTION INTELLIGENCE</span>
+          <section id="check" class="check-panel" aria-labelledby="check-title">
+            <div class="check-heading">
+              <h2 id="check-title">Check a transaction</h2>
+              <span class="synthetic-label">Synthetic</span>
             </div>
-            <span class="art-side">LOOK CLOSER / MOVE SMARTER</span>
-          </div>
-        </section>
-
-        <section class="check-section" id="check" aria-labelledby="check-title">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">01 / THE TRANSACTION CHECK</p>
-              <h2 id="check-title">Let's take a closer look.</h2>
+            <div
+              id="connection-error"
+              class="message error-message"
+              role="alert"
+              hidden
+            >
+              <p id="connection-error-text"></p>
+              <button type="button" class="text-button" id="retry">
+                Try connecting again
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </button>
             </div>
-            <p>Start with an example.<br /> Make a change. See what it means.</p>
-          </div>
-          <div
-            id="connection-error"
-            class="message error-message"
-            role="alert"
-            hidden
-          >
-            <p id="connection-error-text"></p>
-            <button type="button" class="text-button" id="retry">
-              Try connecting again <span aria-hidden="true">↗</span>
-            </button>
-          </div>
-          <div class="check-layout">
-            <div class="input-panel panel">
-              <div class="panel-topline">
-                <span class="step-label">YOUR STARTING POINT</span
-                ><span class="synthetic-label">SYNTHETIC DATA</span>
-              </div>
+            <div class="input-panel">
               <fieldset id="example-fieldset" disabled>
-                <legend>Choose an example</legend>
+                <legend class="sr-only">Choose an example</legend>
                 <div class="example-grid" id="examples">
                   <p class="loading-copy" role="status">
                     Connecting to the example library…
                   </p>
                 </div>
               </fieldset>
-              <label class="more-label" for="all-examples"
-                >Or explore another situation</label
-              ><select id="all-examples" disabled>
-                <option value="">Loading examples…</option>
-              </select>
-              <div class="scenario-intro">
-                <span class="tiny-line" aria-hidden="true"></span>
+              <details class="scenario-options">
+                <summary>
+                  Explore all 11 examples
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </summary>
+                <label class="more-label" for="all-examples"
+                  >Choose another situation</label
+                ><select id="all-examples" disabled>
+                  <option value="">Loading examples…</option>
+                </select>
                 <p id="example-description">
                   Each example comes with illustrative transaction history.
                 </p>
-              </div>
+              </details>
               <form id="client-form">
                 <fieldset id="details-fieldset" disabled>
-                  <legend class="details-legend">Review the details</legend>
+                  <legend class="sr-only">Review the details</legend>
                   <div class="form-grid">
                     <div>
                       <label for="client-amount">Transaction amount</label>
@@ -163,8 +146,10 @@
                   </div>
                   <details class="extra-details">
                     <summary>
-                      Add a little more context
-                      <span aria-hidden="true">+</span>
+                      <span class="context-plus" aria-hidden="true"
+                        ><svg viewBox="0 0 24 24">
+                          <path d="M12 5v14M5 12h14" /></svg></span
+                      >Add more context
                     </summary>
                     <div class="context-content">
                       <label for="client-merchant">Purchase category</label
@@ -184,21 +169,21 @@
                         Other location and identity details come from the
                         selected example.
                       </p>
+                      <div class="history-strip">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M3 12a9 9 0 1 0 3-6M3 3v6h6M12 7v5l3 2" />
+                        </svg>
+                        <div>
+                          <strong id="history-count"
+                            >Example history included</strong
+                          ><span id="history-description"
+                            >Prior activity helps put this purchase in
+                            context.</span
+                          >
+                        </div>
+                      </div>
                     </div>
                   </details>
-                  <div class="history-strip">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M3 12a9 9 0 1 0 3-6M3 3v6h6M12 7v5l3 2" />
-                    </svg>
-                    <div>
-                      <strong id="history-count"
-                        >Example history included</strong
-                      ><span id="history-description"
-                        >Prior activity helps put this purchase in
-                        context.</span
-                      >
-                    </div>
-                  </div>
                   <button
                     class="button button-primary analyze-button"
                     type="submit"
@@ -212,98 +197,79 @@
                 </fieldset>
                 <p id="score-error" class="field-error" role="alert" hidden></p>
                 <p class="form-note">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6zM8 12l3 3 5-6"
-                    /></svg
-                  >Learning demo. No real transaction is approved or blocked.
+                  Learning demo. No real transaction is approved or blocked.
                 </p>
               </form>
             </div>
-
-            <div class="result-column">
-              <section
-                class="result-panel panel"
-                id="result-panel"
-                aria-labelledby="result-title"
-                aria-busy="false"
-              >
-                <div class="panel-topline">
-                  <span class="step-label">YOUR RESULT</span
-                  ><span id="result-state" class="result-state"
-                    >AWAITING A CHECK</span
-                  >
-                </div>
-                <div id="result-content">
-                  <div class="empty-visual" aria-hidden="true">
-                    <span></span><span></span
-                    ><svg viewBox="0 0 72 72">
-                      <path d="M15 36h12l6-13 9 26 7-13h9" />
-                    </svg>
-                  </div>
-                  <h3 id="result-title" tabindex="-1">
-                    A clearer picture<br />starts here.
-                  </h3>
-                  <p class="empty-copy">
-                    Choose an example and check it. You'll see the warning
-                    signals, what they mean, and a suggested next step.
-                  </p>
-                  <div class="result-preview">
-                    <span><i aria-hidden="true"></i>Clear outcome</span
-                    ><span
-                      ><i aria-hidden="true"></i>Plain-language reasons</span
-                    ><span><i aria-hidden="true"></i>Practical next step</span>
-                  </div>
-                </div>
-              </section>
-              <p
-                id="result-announcement"
-                class="sr-only"
-                role="status"
-                aria-live="polite"
-                aria-atomic="true"
-              ></p>
-              <div class="result-footnote">
-                <span aria-hidden="true">↳</span>
-                <p>
-                  A risk estimate is a signal to investigate, not proof of
-                  fraud.
+            <section
+              class="result-panel"
+              id="result-panel"
+              aria-labelledby="result-title"
+              aria-busy="false"
+            >
+              <span id="result-state" class="sr-only">Awaiting a check</span>
+              <div id="result-content">
+                <h3 id="result-title" tabindex="-1">Ready when you are.</h3>
+                <p class="empty-copy">
+                  Check an example to see what stands out and what to do next.
+                  No prediction has been made yet.
                 </p>
               </div>
-            </div>
-          </div>
-          <section
-            class="recent-section"
-            id="recent-section"
-            aria-labelledby="recent-title"
-            hidden
-          >
-            <div class="recent-heading">
-              <h3 id="recent-title">Your recent checks</h3>
-              <span>This session only</span>
-            </div>
-            <div class="recent-list" id="recent-list"></div>
+            </section>
+            <p
+              id="result-announcement"
+              class="sr-only"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            ></p>
+            <p class="result-footnote">
+              A risk estimate is not proof of fraud.
+            </p>
           </section>
         </section>
-
+        <ol
+          class="process-strip"
+          aria-label="Three steps to understand a transaction"
+        >
+          <li>
+            Choose an example
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 12h16M14 6l6 6-6 6" />
+            </svg>
+          </li>
+          <li>
+            Check the details
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 12h16M14 6l6 6-6 6" />
+            </svg>
+          </li>
+          <li>Understand the result</li>
+        </ol>
+        <section
+          class="recent-section"
+          id="recent-section"
+          aria-labelledby="recent-title"
+          hidden
+        >
+          <div class="recent-heading">
+            <h2 id="recent-title">Your recent checks</h2>
+            <span>This session only</span>
+          </div>
+          <div class="recent-list" id="recent-list"></div>
+        </section>
         <section class="how-section" id="how" aria-labelledby="how-title">
           <div class="section-heading">
-            <div>
-              <p class="eyebrow">02 / NO BLACK BOX</p>
-              <h2 id="how-title">
-                Simple on the surface.<br />Thoughtful underneath.
-              </h2>
-            </div>
+            <h2 id="how-title">
+              Simple on the surface.<br />Thoughtful underneath.
+            </h2>
             <p>
-              You shouldn't need a technical background<br /> to understand a
-              risk decision.
+              You shouldn't need a technical background to understand a risk
+              decision.
             </p>
           </div>
           <div class="how-grid">
             <article>
-              <span class="how-number"
-                >01<span aria-hidden="true">↗</span></span
-              >
               <h3>Put it in context.</h3>
               <p>
                 Amount, device and earlier activity help explain whether a
@@ -311,9 +277,6 @@
               </p>
             </article>
             <article>
-              <span class="how-number"
-                >02<span aria-hidden="true">↗</span></span
-              >
               <h3>Look for the signals.</h3>
               <p>
                 A trained model estimates risk. Separate checks look for
@@ -321,9 +284,6 @@
               </p>
             </article>
             <article>
-              <span class="how-number"
-                >03<span aria-hidden="true">↗</span></span
-              >
               <h3>Understand the next step.</h3>
               <p>
                 Get a readable outcome and specific things to verify before
@@ -332,16 +292,17 @@
             </article>
           </div>
         </section>
-
         <section
           class="questions-section"
           id="questions"
           aria-labelledby="questions-title"
         >
           <div>
-            <p class="eyebrow">03 / GOOD TO KNOW</p>
             <h2 id="questions-title">A little context<br />goes a long way.</h2>
-            <p>Clear answers.<br /> No fine-print surprises.</p>
+            <p>
+              Clear answers.<br />
+              No fine-print surprises.
+            </p>
           </div>
           <div class="question-list">
             <details>
