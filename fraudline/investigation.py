@@ -114,6 +114,8 @@ def retrieve(question, factors):
             lexical.append((overlap, row))
     lexical.sort(key=lambda item: (-item[0], item[1]["id"]))
     control = [row for row in corpus if row["id"] in factors]
+    if not words and len(question.strip()) < 8 and not factors:
+        return []
     if not words:
         # Generic review questions must not manufacture unrelated risk factors.
         lexical = [(1, row) for row in corpus if row["id"] in factors or row["id"] == "general"]

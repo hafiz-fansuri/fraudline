@@ -6,6 +6,10 @@ A transaction review desk that brings fraud screening and cited investigation gu
 
 ![Unified transaction review desk with risk findings and cited evidence](docs/unified-desk.jpg)
 
+## OpenRouter assistant and status meanings
+
+Use **Ask assistant** for a generated answer using the server-side RAGS/OpenRouter integration. Questions, status labels, model probability and selected demo playbooks are shared through Supabase to a free model; raw transaction details are not sent automatically. Cited guidance is distinguished from general explanations. Failures retain the score and local playbooks. Every transaction status now has a plain-language explanation beside the result and in the queue guide. See [assistant implementation, privacy and status reference](docs/openrouter-assistant.md).
+
 ## Introduction
 
 Financial operations staff need to understand why a payment was flagged and what to check next. This app combines Fraudline's transaction scoring with Proofline's evidence-retrieval patterns. Select a transaction, inspect the model estimate and contextual findings, and retrieve relevant review guidance without switching apps.
@@ -47,17 +51,17 @@ flowchart LR
 | Backend | FastAPI and Pydantic; shared scoring/review API and strict input checks |
 | Detection | LightGBM + CPU-only XGBoost; native persisted models and calibrated probability |
 | Features | pandas/NumPy; shared 54-feature builder, strictly earlier history |
-| Investigation | Local bounded extractive RAG; Proofline-inspired rank fusion, citations and abstention, no external AI call |
+| Investigation | Local retrieval plus explicit OpenRouter generation through a dedicated Supabase Edge Function; cited/general answers and offline fallback |
 | Evidence | Ten original, versioned demo playbooks with SHA-256 provenance; not bank-approved policy |
 | Audit | SQLAlchemy SQLite; ephemeral on Vercel, optional local PostgreSQL |
 | Testing / CI | pytest, Ruff, GitHub Actions, synthetic scenarios and artifact integrity checks |
 | Hosting | Vercel FastAPI; training and optional operations run locally |
 
-Proofline's original Supabase/OpenRouter services and OWASP corpus are **not** called by this unified app. Its AI-security corpus is not a banking policy source. See [integration attribution](docs/PROOFLINE-NOTICE.md).
+The dedicated assistant reuses Proofline's server-side RAGS key in Supabase. The original Proofline function and OWASP corpus are not used for banking guidance. Its AI-security corpus is not a banking policy source. See [integration attribution](docs/PROOFLINE-NOTICE.md).
 
 ## What input does inference get?
 
-The model receives a payment record, not a user's question or the fraud label. The backend turns it into 54 numerical features. The question goes only to the evidence retriever; it cannot change the fraud probability.
+The model receives a payment record, not a user's question or the fraud label. The backend turns it into 54 numerical features. The question drives evidence retrieval and, on explicit submission, OpenRouter generation; it cannot change the fraud probability.
 
 Minimum request to `/api/review`:
 

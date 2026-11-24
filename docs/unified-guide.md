@@ -1,3 +1,5 @@
+> **OpenRouter update:** Ask assistant now calls a dedicated Supabase function using the stored RAGS key. The local/extractive descriptions below explain the fallback path. Read [the current assistant, privacy and status reference](openrouter-assistant.md) for generation, data sharing, quotas and status meanings.
+
 # Unified app: learning guide from input to evidence
 
 This guide explains the November 2026 combination of Fraudline and Proofline. Read it alongside the source files. The original single-stage learning guide remains historical background, not the current hybrid's training specification.

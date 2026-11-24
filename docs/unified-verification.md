@@ -13,3 +13,7 @@
 ## Limits
 
 No production bank integration, authentication, tenant isolation, durable hosted case storage or payment action exists. The playbooks are illustrative and the RAG workflow is local/extractive, not an autonomous LLM agent. No operational banking load test or fresh unseen-bank validation has been performed. Existing research intervals have been inspected before; the hybrid does not establish improved accuracy over the earlier model.
+
+## OpenRouter/status update
+
+The dedicated Supabase assistant is deployed with JWT verification enabled, using the existing server-side RAGS key. Four Node tests cover minimal provider payloads, canonical evidence IDs, free-model selection and citation/input rejection. The Python suite remains 33 passed. Live provider attempts returned HTTP 429 from both free model endpoints, confirmed in sanitized function logs; successful generated-answer quality could not be verified during this release. The UI retains the scored result and shows an explicit rate-limit explanation. No paid fallback is configured.

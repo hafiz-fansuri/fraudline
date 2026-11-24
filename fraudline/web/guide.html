@@ -1,4 +1,7 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fraudline — A–Z learning guide</title><link rel="stylesheet" href="/assets/style.css?v=20261117-2"></head><body><main class="guide"><a href="/workbench#learn">← Back to the workbench</a><p><a href="/assets/learning-guide.md" download>Download Markdown guide</a></p><h1>Unified app: learning guide from input to evidence</h1>
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fraudline — A–Z learning guide</title><link rel="stylesheet" href="/assets/style.css?v=20261117-2"></head><body><main class="guide"><a href="/workbench#learn">← Back to the workbench</a><p><a href="/assets/learning-guide.md" download>Download Markdown guide</a></p><blockquote>
+<p><strong>OpenRouter update:</strong> Ask assistant now calls a dedicated Supabase function using the stored RAGS key. The local/extractive descriptions below explain the fallback path. Read <a href="https://github.com/hafiz-fansuri/fraudline/blob/main/docs/openrouter-assistant.md">the current assistant, privacy and status reference</a> for generation, data sharing, quotas and status meanings.</p>
+</blockquote>
+<h1>Unified app: learning guide from input to evidence</h1>
 <p>This guide explains the November 2026 combination of Fraudline and Proofline. Read it alongside the source files. The original single-stage learning guide remains historical background, not the current hybrid's training specification.</p>
 <h2>A. Start with the user's job</h2>
 <p>A fraud analyst receives a payment, decides which details require investigation and records a reasoned human decision. The app supports that task through a queue and a selected-transaction receipt. It is not a bank payment gateway. A green result means no configured alert, not a guarantee that a payment is legitimate.</p>
@@ -201,4 +204,89 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8000/api/review' -Method Post -ContentT
 <h2>U–Z. Before a real institution uses it</h2>
 <p>Use a bank-specific model and feature availability contract; approved internal policies with owners and effective dates; authenticated staff accounts, roles and tenant isolation; a trusted history store; idempotent ingestion; encrypted durable audit and retention controls; a fresh temporal validation dataset; monitored service performance and rollback; and an approved human decision process. These are future integration requirements, not completed features or claims of regulatory compliance.</p>
 <p>The core separation should remain: <strong>the detector estimates risk, controls flag context, retrieval supplies evidence, and authorized humans decide consequential actions.</strong></p>
+<h1>OpenRouter assistant and status explanations</h1>
+<h2>What changed</h2>
+<p>The transaction desk now has <strong>Ask assistant</strong>, using the existing server-side <code>RAGS</code> OpenRouter key in the <code>proofline-ai-security</code> Supabase project. The new <code>fraudline-assistant</code> Edge Function is separate from the original Proofline function. It keeps JWT verification enabled and calls only free model IDs, with zero prompt/completion price ceilings. No paid fallback is enabled.</p>
+<p>Selecting a transaction still uses local scoring and local playbooks only. OpenRouter is called <strong>only when the user submits a question</strong>. General questions are supported, but a language model cannot guarantee an answer to every question. Unsupported bank-policy conclusions must be identified as unsupported.</p>
+<h2>Data flow and privacy</h2>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant User
+    participant Desk
+    participant API as FastAPI
+    participant Edge as Supabase assistant
+    participant AI as OpenRouter free model
+    User-&gt;&gt;Desk: Ask a question
+    Desk-&gt;&gt;API: Transaction and question (existing review API)
+    API--&gt;&gt;Desk: Unchanged risk assessment and retrieved playbooks
+    Desk-&gt;&gt;Edge: Question, evidence IDs, probability and status labels
+    Edge-&gt;&gt;Edge: Resolve canonical passages; claim daily quota
+    Edge-&gt;&gt;AI: Question, minimal assessment and canonical passages
+    AI--&gt;&gt;Edge: Plain-language answer
+    Edge-&gt;&gt;Edge: Validate citation IDs
+    Edge--&gt;&gt;Desk: Cited answer or general explanation
+</code></pre>
+<p>Automatically shared: the user's question, calibrated probability, model/final status labels and selected illustrative playbooks. <strong>Not automatically shared:</strong> transaction ID, amount, account ID, device, precise location or history. A user can still type sensitive details into a question, so the UI explicitly says not to enter personal or confidential information. Questions pass through Supabase and OpenRouter/model providers; do not assume provider retention is disabled. This is not an approved banking-data processing arrangement.</p>
+<p>The OpenRouter secret is never copied into Git, Vercel or the browser. <code>fraudline/web/rags-config.json</code> contains public Supabase connection identifiers and a legacy public <code>anon</code> gateway JWT, as in Proofline; it is not an OpenRouter or service-role key. Public demo access is quota-limited, not staff authentication.</p>
+<h2>How answers are built</h2>
+<p>The local retriever selects up to five versioned playbooks. The Edge Function accepts only their known IDs and resolves their canonical text from its own bundled corpus. It does not accept caller-written passages. It strips the assessment to three fields before building the prompt. The prompt asks the model to separate general knowledge from passage-supported case or policy claims, cite only supplied sources, state uncertainty and never take actions.</p>
+<p>The selected free model is <code>FRAUDLINE_OPENROUTER_MODEL</code> if configured, otherwise <code>inclusionai/ling-3.2-flash:free</code>. A single bounded fallback uses <code>particle-ai/particle-1:free</code>. Only IDs ending in <code>:free</code> or <code>openrouter/free</code> are accepted. Each attempt has a 25-second timeout and an output limit. A shared database quota allows <strong>30 assistant requests per day</strong> (OpenRouter/model-provider limits may be lower) for this public app. A request can use up to two free model attempts. The existing Proofline quota is separate.</p>
+<p>With retrieved evidence, answers must include at least one in-range numbered citation. Without evidence, the UI labels the response <strong>General explanation · not bank policy</strong>, and invented numbered citations are rejected. Citation ID checks do not prove that a source supports a claim. General knowledge in an otherwise cited answer is still model-generated and needs human verification.</p>
+<p>Generation failures, empty responses, invalid citations, timeouts and exhausted quotas show <strong>AI unavailable</strong>. The score, controls and local playbooks remain visible. The user can retry. The model does not change probability, status, policy or money movement. Output is rendered as escaped plain text; HTML, scripts and remote images are not executed.</p>
+<h2>Transaction status meanings</h2>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Explanation</th>
+<th>Next step</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Not checked</td>
+<td>No scoring assessment yet</td>
+<td>Select the transaction</td>
+</tr>
+<tr>
+<td>No alert</td>
+<td>Model below review threshold and no contextual escalation</td>
+<td>Follow normal checks; this is not a guarantee of safety</td>
+</tr>
+<tr>
+<td>Review suggested</td>
+<td>Model threshold or contextual signal calls for verification</td>
+<td>A person reviews details and evidence</td>
+</tr>
+<tr>
+<td>Pause suggested</td>
+<td>High model estimate or a strong control warning</td>
+<td>Escalate through the institution's process; the app has not blocked funds</td>
+</tr>
+<tr>
+<td>Review unavailable</td>
+<td>Scoring could not complete</td>
+<td>Check the service/input and retry; no substitute score is shown</td>
+</tr>
+</tbody>
+</table>
+<p>The selected status has its explanation immediately below the label. The queue also includes an expandable guide explaining every status. Model suggestion and final contextual suggestion remain separate.</p>
+<h2>Assistant status meanings</h2>
+<ul>
+<li><strong>AI answer · playbooks cited:</strong> generated answer with valid reference IDs; check the actual passages.</li>
+<li><strong>General explanation · not bank policy:</strong> answer without retrieved support; not a case-specific or regulatory conclusion.</li>
+<li><strong>Writing your answer:</strong> request is in progress; risk findings remain unchanged.</li>
+<li><strong>AI unavailable:</strong> free service/quota/citation/network problem; local guidance remains available.</li>
+</ul>
+<h2>Files and verification</h2>
+<ul>
+<li><code>supabase/functions/fraudline-assistant/index.ts</code>: secret access, quota and provider calls.</li>
+<li><code>supabase/functions/fraudline-assistant/core.mjs</code>: input allowlist, prompts and citation checks.</li>
+<li><code>supabase/functions/fraudline-assistant/corpus.json</code>: versioned canonical playbooks; regenerate from <code>fraudline.investigation.sources()</code> when changing the corpus, then redeploy both sides.</li>
+<li><code>fraudline/web/desk.js</code>: explicit question submission, AI state, escaped rendering and status explanations.</li>
+<li><code>tests/assistant.test.mjs</code>: payload minimization, canonical evidence, free-only models, citation bounds and invalid inputs.</li>
+</ul>
+<p>Run <code>node --test tests/assistant.test.mjs</code>, <code>uv run pytest -q</code> and <code>uv run ruff check fraudline app.py tests scripts</code>. The JavaScript tests are included in GitHub Actions. Serving, retrieval and hybrid-model tests remain in the Python suite. Free-provider availability changes independently of code releases; a successful smoke test is not a reliability guarantee.</p>
+<h2>Deployment</h2>
+<p>Deploy the dedicated function to the existing Supabase project with JWT verification enabled. The project already holds <code>RAGS</code> and the service-role-only <code>claim_budget</code> RPC; no new table or permission grant is required. Deploy the frontend/FastAPI separately to Vercel. The OpenRouter key remains in Supabase secrets. User approval for this project and the described data sharing was obtained before function deployment.</p>
+<p>Provider references: <a href="https://openrouter.ai/docs/api_reference/overview">OpenRouter API</a>, <a href="https://supabase.com/docs/guides/functions/secrets">Supabase secrets</a>.</p>
 </main></body></html>

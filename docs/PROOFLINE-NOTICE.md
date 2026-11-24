@@ -1,3 +1,5 @@
+> Update: the app now also uses a dedicated Supabase/OpenRouter generation function with the existing RAGS secret. See [the assistant reference](openrouter-assistant.md). Earlier local-only descriptions below document the fallback implementation.
+
 # Proofline integration and license
 
 The bounded investigation implementation adapts rank fusion, source diversity,

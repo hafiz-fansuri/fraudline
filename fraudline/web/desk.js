@@ -17,6 +17,16 @@ const labels = {
   block: "Pause suggested",
   unchecked: "Not checked",
 };
+const statusExplanations = {
+  unchecked:
+    "This transaction has not been scored yet. Select it to run the checks.",
+  approve:
+    "The model is below the review threshold and no control raised an alert. This does not guarantee that the payment is safe.",
+  review:
+    "The model or a contextual control suggests a human check. Verify the details before deciding what to do.",
+  block:
+    "A high model estimate or a strong contextual warning suggests pausing for human escalation. This app has not blocked or moved any money.",
+};
 const state = {
   rows: [],
   selected: null,
@@ -87,10 +97,89 @@ function renderQueue() {
   $("#queue-note").textContent =
     `${state.rows.length} transactions · ${state.rows[0]?.provenance || "Imported synthetic data"} · USD`;
 }
+function renderAI(generated) {
+  if (!generated)
+    return '<div id="ai-answer"><p class="evidence-note">Ask a question to get an OpenRouter answer. The playbook guidance below is available without AI.</p></div>';
+  const heading =
+    generated.status === "answered"
+      ? "AI answer · playbooks cited"
+      : generated.status === "general_answer"
+        ? "General explanation · not bank policy"
+        : generated.status === "loading"
+          ? "Writing your answer…"
+          : "AI unavailable";
+  return `<section id="ai-answer" class="ai-answer" aria-live="polite"><h4>${esc(heading)}</h4>${(
+    generated.answer ||
+    generated.error ||
+    ""
+  )
+    .split("\n\n")
+    .map((p) => `<p>${esc(p)}</p>`)
+    .join(
+      "",
+    )}<p class="evidence-note">${generated.model ? `Model: ${esc(generated.model)}. AI answers can be wrong; check the sources.` : ""}</p></section>`;
+}
+async function askAssistant(result, question) {
+  result.investigation.question = question;
+  result.investigation.generated = {
+    status: "loading",
+    answer:
+      "Your risk assessment stays unchanged while the assistant responds.",
+  };
+  $("#ai-answer").outerHTML = renderAI(result.investigation.generated);
+  $("#ask-form button").disabled = true;
+  try {
+    const config = await api("/assets/rags-config.json");
+    const r = result.risk;
+    const response = await fetch(
+      `${config.url}/functions/v1/${config.function}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: config.publishableKey,
+          Authorization: `Bearer ${config.gatewayToken}`,
+        },
+        body: JSON.stringify({
+          question,
+          evidence_ids: result.investigation.evidence.map((e) => e.id),
+          assessment: {
+            decision: r.decision,
+            model_decision: r.model_decision,
+            probability: r.probability,
+          },
+        }),
+        signal: AbortSignal.timeout(65000),
+      },
+    );
+    const data = await response.json();
+    if (!response.ok)
+      throw new Error(
+        data.error || "The free assistant is unavailable. Try again later.",
+      );
+    if (
+      typeof data.answer !== "string" ||
+      !["answered", "general_answer"].includes(data.status)
+    )
+      throw new Error("The assistant returned an invalid answer.");
+    result.investigation.generated = data;
+  } catch (e) {
+    result.investigation.generated = {
+      status: "provider_error",
+      error:
+        e.name === "TimeoutError"
+          ? "The free provider timed out. Your score and playbooks are still available. Try again."
+          : e.message,
+    };
+  } finally {
+    $("#ai-answer").outerHTML = renderAI(result.investigation.generated);
+    $("#ask-form button").disabled = false;
+  }
+}
 function renderEvidence(investigation) {
   if (investigation.status === "abstained")
-    return `<p>${esc(investigation.answer)}</p>`;
-  return `<p class="evidence-note">${esc(investigation.mode)}. Illustrative guidance; not bank-approved policy.</p><h4>Suggested human review steps</h4><ol class="steps">${investigation.next_steps.map((step) => `<li>${esc(step.text)} <a href="#evidence-${step.citation}">[${step.citation}]</a></li>`).join("")}</ol><details><summary>Read the cited guidance</summary>${investigation.answer
+    return `${renderAI(investigation.generated)}<p>${esc(investigation.answer)} You can still ask the AI for a general explanation.</p>`;
+  return `${renderAI(investigation.generated)}<p class="evidence-note">Local playbook guidance. Illustrative guidance; not bank-approved policy.</p><h4>Suggested human review steps</h4><ol class="steps">${investigation.next_steps.map((step) => `<li>${esc(step.text)} <a href="#evidence-${step.citation}">[${step.citation}]</a></li>`).join("")}</ol><details><summary>Read the cited guidance</summary>${investigation.answer
     .split("\n\n")
     .map((p) => `<p>${esc(p)}</p>`)
     .join(
@@ -101,7 +190,7 @@ function renderReceipt(row, result) {
   const t = row.transaction,
     r = result.risk;
   $("#receipt").innerHTML =
-    `<div class="receipt-top"><div><h3 id="case-title">${esc(row.title)}</h3><span class="case-id">${esc(t.transaction_id)}</span></div><button id="export" type="button">Save review</button></div><div class="assessment"><span class="tag ${r.decision}">${labels[r.decision]}</span><div class="probability">${(r.probability * 100).toFixed(2)}%</div><p>Calibrated model estimate · not a confirmed fraud rate</p><p>Model suggests: ${labels[r.model_decision]}. Context controls may escalate the review.</p><div class="facts"><span>${money(t.amount)} USD</span><span>${t.history?.length || 0} earlier events supplied</span><span>Device: ${esc(t.device_type || "unknown")}</span></div></div><h4>What needs attention</h4>${r.signals.length ? r.signals.map((s) => `<div class="signal"><strong>${esc(s.title)}</strong><p>${esc(s.evidence)}</p></div>`).join("") : '<p class="evidence-note">No contextual control fired. Missing inputs and an absence of alerts do not establish that a payment is safe.</p>'}<details><summary>Model details and limitations</summary><p class="evidence-note">Version ${esc(r.model_version)} · ${esc(r.data_source)}. Review threshold ${(r.thresholds.review * 100).toFixed(2)}%; pause threshold ${(r.thresholds.block * 100).toFixed(2)}%.</p><p class="evidence-note">${esc(r.reason_scale)}</p><ul class="steps">${r.reasons.map((reason) => `<li>${esc(reason.label)}: ${esc(reason.direction)} LightGBM-stage score</li>`).join("")}</ul><p class="evidence-note">Audit reference: ${esc(r.prediction_id)}. Public deployment storage is temporary.</p></details><section class="investigation"><h3>Investigate with evidence</h3><form id="ask-form"><div><label for="question">Question about the selected transaction</label><textarea id="question" minlength="8" maxlength="1200" required>What evidence and human review steps apply to this transaction?</textarea></div><button class="primary" type="submit">Find guidance</button></form><div id="evidence" aria-live="polite">${renderEvidence(result.investigation)}</div></section>`;
+    `<div class="receipt-top"><div><h3 id="case-title">${esc(row.title)}</h3><span class="case-id">${esc(t.transaction_id)}</span></div><button id="export" type="button">Save review</button></div><div class="assessment"><span class="tag ${r.decision}">${labels[r.decision]}</span><p class="status-explanation">${esc(statusExplanations[r.decision])}</p><div class="probability">${(r.probability * 100).toFixed(2)}%</div><p>Calibrated model estimate · not a confirmed fraud rate</p><p>Model suggests: ${labels[r.model_decision]}. Context controls may escalate the review.</p><div class="facts"><span>${money(t.amount)} USD</span><span>${t.history?.length || 0} earlier events supplied</span><span>Device: ${esc(t.device_type || "unknown")}</span></div></div><h4>What needs attention</h4>${r.signals.length ? r.signals.map((s) => `<div class="signal"><strong>${esc(s.title)}</strong><p>${esc(s.evidence)}</p></div>`).join("") : '<p class="evidence-note">No contextual control fired. Missing inputs and an absence of alerts do not establish that a payment is safe.</p>'}<details><summary>Model details and limitations</summary><p class="evidence-note">Version ${esc(r.model_version)} · ${esc(r.data_source)}. Review threshold ${(r.thresholds.review * 100).toFixed(2)}%; pause threshold ${(r.thresholds.block * 100).toFixed(2)}%.</p><p class="evidence-note">${esc(r.reason_scale)}</p><ul class="steps">${r.reasons.map((reason) => `<li>${esc(reason.label)}: ${esc(reason.direction)} LightGBM-stage score</li>`).join("")}</ul><p class="evidence-note">Audit reference: ${esc(r.prediction_id)}. Public deployment storage is temporary.</p></details><section class="investigation"><h3>Investigate with evidence</h3><form id="ask-form"><div><label for="question">Your question</label><textarea id="question" minlength="2" maxlength="1200" required>${esc(result.investigation.question || "What evidence and human review steps apply to this transaction?")}</textarea></div><button class="primary" type="submit">Ask assistant</button></form><p class="evidence-note">Your question, model probability, status labels and selected demo playbooks are sent through Supabase to OpenRouter. No transaction ID, amount, device, location or history is sent automatically. Do not type personal or confidential information. Free daily limits apply.</p><div id="evidence" aria-live="polite">${renderEvidence(result.investigation)}</div></section>`;
   $("#export").onclick = () =>
     download(`${t.transaction_id}-review.json`, {
       provenance: row.provenance,
@@ -137,7 +226,10 @@ async function select(id, question) {
     if (revision !== state.revision) return;
     state.results.set(id, result);
     renderReceipt(row, result);
-    if (question) $("#question").value = question;
+    if (question) {
+      $("#question").value = question;
+      await askAssistant(result, question);
+    }
   } catch (e) {
     error(e.message);
     $("#receipt").innerHTML =
@@ -158,7 +250,6 @@ $("#template").onclick = () =>
   download("fraudline-synthetic-transactions.json", {
     transactions: state.rows.map((row) => row.transaction),
   });
-$("#import-button").onclick = () => $("#upload").click();
 $("#import-button").onclick = () => $("#upload").click();
 $("#upload").onchange = async (event) => {
   const file = event.target.files[0];

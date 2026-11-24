@@ -1,6 +1,5 @@
 """Build the static guide using markdown-it already installed with the operations tools."""
 
-import shutil
 from pathlib import Path
 
 from markdown_it import MarkdownIt
@@ -8,7 +7,21 @@ from markdown_it import MarkdownIt
 root = Path(__file__).resolve().parents[1]
 source = root / "docs/unified-guide.md"
 web = root / "fraudline/web"
-body = MarkdownIt("commonmark", {"html": False}).enable("table").render(source.read_text(encoding="utf-8"))
+body = (
+    MarkdownIt("commonmark", {"html": False})
+    .enable("table")
+    .render(
+        (
+            source.read_text(encoding="utf-8")
+            + "\n\n"
+            + (root / "docs/openrouter-assistant.md").read_text(encoding="utf-8")
+        )
+    )
+)
+body = body.replace(
+    'href="openrouter-assistant.md"',
+    'href="https://github.com/hafiz-fansuri/fraudline/blob/main/docs/openrouter-assistant.md"',
+)
 (web / "guide.html").write_text(
     '<!doctype html><html lang="en"><head><meta charset="UTF-8">'
     '<meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -19,5 +32,10 @@ body = MarkdownIt("commonmark", {"html": False}).enable("table").render(source.r
     + "</main></body></html>",
     encoding="utf-8",
 )
-shutil.copy2(source, web / "learning-guide.md")
+(web / "learning-guide.md").write_text(
+    source.read_text(encoding="utf-8")
+    + "\n\n"
+    + (root / "docs/openrouter-assistant.md").read_text(encoding="utf-8"),
+    encoding="utf-8",
+)
 print(f"Built guide: {len(body):,} HTML characters")

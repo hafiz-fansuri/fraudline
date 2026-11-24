@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#0b0f12" />
     <title>Fraudline — Transaction review</title>
-    <link rel="stylesheet" href="/assets/desk.css?v=20261124" />
-    <script defer src="/assets/desk.js?v=20261124"></script>
+    <link rel="stylesheet" href="/assets/desk.css?v=20261124-rags" />
+    <script defer src="/assets/desk.js?v=20261124-rags"></script>
   </head>
   <body>
     <a class="skip" href="#review">Skip to transaction review</a>
@@ -71,6 +71,32 @@
               <option value="block">Pause suggested</option>
               <option value="approve">No alert</option>
             </select>
+            <details class="status-guide">
+              <summary>What do the statuses mean?</summary>
+              <dl>
+                <dt>Not checked</dt>
+                <dd>
+                  No assessment yet. Select a transaction to run the checks.
+                </dd>
+                <dt>No alert</dt>
+                <dd>
+                  No configured warning fired. This does not guarantee a safe
+                  payment.
+                </dd>
+                <dt>Review suggested</dt>
+                <dd>A model or contextual signal needs human verification.</dd>
+                <dt>Pause suggested</dt>
+                <dd>
+                  A strong warning needs human escalation. This app has not
+                  blocked money.
+                </dd>
+                <dt>Review unavailable</dt>
+                <dd>
+                  A service or input problem prevented scoring. Retry; no
+                  substitute score is shown.
+                </dd>
+              </dl>
+            </details>
             <div id="queue" aria-live="polite"></div>
           </section>
           <article class="receipt" id="receipt" aria-labelledby="case-title">
@@ -122,8 +148,9 @@
             <p>
               A bounded evidence workflow: inspect the risk findings, retrieve
               relevant playbooks, and return cited passages and human review
-              steps. This version uses local extractive RAG without an external
-              language model. Playbooks are illustrative, not approved bank
+              steps. Ask assistant uses a free OpenRouter model to answer your
+              question. It distinguishes cited playbook guidance from general
+              explanations. Playbooks are illustrative, not approved bank
               policy.
             </p>
           </details>

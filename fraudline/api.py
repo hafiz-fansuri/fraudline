@@ -93,7 +93,7 @@ class Review(BaseModel):
     transaction: Transaction
     question: str = Field(
         default="What evidence and human review steps apply to this transaction?",
-        min_length=8,
+        min_length=2,
         max_length=1200,
     )
 
@@ -167,7 +167,7 @@ def create_app(model_path=None, database_url=None):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+            "default-src 'self'; connect-src 'self' https://fszqzfxiegkxubiasllh.supabase.co; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         )
         return response
 

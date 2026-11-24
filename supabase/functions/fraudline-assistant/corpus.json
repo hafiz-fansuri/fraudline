@@ -1,0 +1,122 @@
+[
+  {
+    "id": "amount",
+    "document_id": "amount",
+    "title": "Amount and velocity",
+    "content": "Compare the payment amount with strictly earlier activity. Check repeated small charges and rapid transaction bursts. Ask an analyst to confirm context before escalating. An unusual amount alone does not establish fraud.",
+    "next_step": "Review earlier activity and contact the customer through an established channel.",
+    "publisher": "Fraudline demo authors",
+    "version": "bank-playbooks-2026-11-24",
+    "sha256": "6062a2a22ab6eb58aad69ee8557ebeb20769233487b61e23c77364eb61afda22",
+    "url": "/assets/playbooks.md#amount",
+    "status": "Illustrative; not bank-approved policy"
+  },
+  {
+    "id": "velocity",
+    "document_id": "velocity",
+    "title": "Card testing and bursts",
+    "content": "Repeated small test charges or a transaction burst warrant review of earlier activity and linked attempts. Confirm timestamps and duplicates. Do not infer an attack solely from transaction count.",
+    "next_step": "Check duplicates and the sequence of earlier attempts.",
+    "publisher": "Fraudline demo authors",
+    "version": "bank-playbooks-2026-11-24",
+    "sha256": "69cd3866ea7ba17dca8042b4837df6bcb8bcdd84a89235785a0c7c3ec7efe133",
+    "url": "/assets/playbooks.md#velocity",
+    "status": "Illustrative; not bank-approved policy"
+  },
+  {
+    "id": "location",
+    "document_id": "location",
+    "title": "Location and travel",
+    "content": "An IP and billing-country mismatch can reflect travel or a VPN. Implausible travel requires reliable coordinates and timestamps. Verify location quality and use established customer verification before a final decision.",
+    "next_step": "Verify location quality and confirm travel through an established channel.",
+    "publisher": "Fraudline demo authors",
+    "version": "bank-playbooks-2026-11-24",
+    "sha256": "fd62736cda53742fae3f39a64e998e6da9b75269acd3d5386358fa178685fb0d",
+    "url": "/assets/playbooks.md#location",
+    "status": "Illustrative; not bank-approved policy"
+  },
+  {
+    "id": "device",
+    "document_id": "device",
+    "title": "Device changes",
+    "content": "A new device type or identifier is a review signal. Shared devices can be legitimate. Check prior device history and authentication evidence before deciding that an account is compromised.",
+    "next_step": "Compare device history and verify the recent authentication.",
+    "publisher": "Fraudline demo authors",
+    "version": "bank-playbooks-2026-11-24",
+    "sha256": "5945b7f783f30516212afa98859349ab3397e548d4075a1fcc36e5886c71e13b",
+    "url": "/assets/playbooks.md#device",
+    "status": "Illustrative; not bank-approved policy"
+  },
+  {
+    "id": "account",
+    "document_id": "account",
+    "title": "Account takeover",
+    "content": "A password change followed by a large payment, a new payee followed by withdrawal, or repeated login failures warrants account review. Confirm event order. Never ask for passwords or one-time codes.",
+    "next_step": "Review authentication and payee changes; escalate through the institution's approved process.",
+    "publisher": "Fraudline demo authors",
+    "version": "bank-playbooks-2026-11-24",
+    "sha256": "5cf0eca4817eaf713c13bb12c16780a77ee18112abeaea6f5e9fa1705ed3b850",
+    "url": "/assets/playbooks.md#account",
+    "status": "Illustrative; not bank-approved policy"
+  },
+  {
+    "id": "network",
+    "document_id": "network",
+    "title": "Shared-device links",
+    "content": "Several accounts using one device can warrant linked-account review, but households and shared terminals are legitimate explanations. A graph link is an association, not proof of a fraud ring.",
+    "next_step": "Inspect linked activity and record alternative explanations.",
+    "publisher": "Fraudline demo authors",
+    "version": "bank-playbooks-2026-11-24",
+    "sha256": "4e0cb92590af474c1cc752fa5c88fa2cdb764cb99153736f3bf0b2212e5d0ffc",
+    "url": "/assets/playbooks.md#network",
+    "status": "Illustrative; not bank-approved policy"
+  },
+  {
+    "id": "identity",
+    "document_id": "identity",
+    "title": "Identity checks",
+    "content": "An identity mismatch or disposable-email flag warrants checking source reliability. Email domains are weak proxies for identity. Use the institution's approved verification process; never collect identity documents in this public demo.",
+    "next_step": "Verify the source of the mismatch using the approved identity workflow.",
+    "publisher": "Fraudline demo authors",
+    "version": "bank-playbooks-2026-11-24",
+    "sha256": "4db3b38b23dd08e74315af18d137b8a9ad2ade144f3947a1b341f7dbd5ec9cfe",
+    "url": "/assets/playbooks.md#identity",
+    "status": "Illustrative; not bank-approved policy"
+  },
+  {
+    "id": "merchant",
+    "document_id": "merchant",
+    "title": "Merchant context",
+    "content": "Gift cards, crypto and gambling are illustrative review categories in this demo. They are not universal prohibited categories or learned IEEE merchant labels. Apply only an institution-approved merchant policy.",
+    "next_step": "Check the institution's merchant policy and the customer's context.",
+    "publisher": "Fraudline demo authors",
+    "version": "bank-playbooks-2026-11-24",
+    "sha256": "82489bfa533b7f619a321c59d5f006305507edd7c740cc1d5e9d0ccac93f3844",
+    "url": "/assets/playbooks.md#merchant",
+    "status": "Illustrative; not bank-approved policy"
+  },
+  {
+    "id": "time",
+    "document_id": "time",
+    "title": "Time patterns",
+    "content": "An unusual hour is a review cue, not proof of fraud. IEEE TransactionDT is relative time and does not establish a customer's local time zone. Confirm the event time and earlier behavior.",
+    "next_step": "Confirm the time zone and compare strictly earlier activity.",
+    "publisher": "Fraudline demo authors",
+    "version": "bank-playbooks-2026-11-24",
+    "sha256": "1b59730b74ea4dd17162aee474abaae58b438fab8156a4e065870e09e363b6e0",
+    "url": "/assets/playbooks.md#time",
+    "status": "Illustrative; not bank-approved policy"
+  },
+  {
+    "id": "general",
+    "document_id": "general",
+    "title": "Human review and evidence",
+    "content": "Keep the calibrated model probability separate from contextual control findings. A model score is not a verdict. Record the model version, missing inputs and cited evidence. A person must approve consequential action; the assistant cannot block funds or declare regulatory compliance.",
+    "next_step": "Review missing information and record the human decision in the bank's case system.",
+    "publisher": "Fraudline demo authors",
+    "version": "bank-playbooks-2026-11-24",
+    "sha256": "dcd4518f8236cd0b6edf6dbb1a03d343b16a311dcb3cde48e272e0fac3e563f6",
+    "url": "/assets/playbooks.md#general",
+    "status": "Illustrative; not bank-approved policy"
+  }
+]

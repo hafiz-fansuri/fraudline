@@ -590,3 +590,41 @@ code {
 .receipt h3 {
   overflow-wrap: anywhere;
 }
+
+.status-guide {
+  margin-bottom: 18px;
+}
+.status-guide summary {
+  font-size: 0.8rem;
+}
+.status-guide dl {
+  font-size: 0.78rem;
+}
+.status-guide dt {
+  font-weight: 650;
+  margin-top: 14px;
+}
+.status-guide dd {
+  margin: 4px 0 12px;
+  color: var(--muted);
+}
+.assessment .status-explanation {
+  color: var(--ink);
+  font-size: 0.85rem;
+  max-width: 65ch;
+  margin: 12px 0 20px;
+}
+.ai-answer {
+  margin: 24px 0;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+.ai-answer h4 {
+  margin: 0 0 12px;
+  color: var(--cyan);
+}
+.ai-answer p {
+  font-size: 0.88rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
