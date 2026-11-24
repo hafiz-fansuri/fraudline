@@ -1,388 +1,174 @@
-# Fraudline
+# Fraudline + Proofline
 
-**An end-to-end fraud detection project: from raw transaction data to an explainable decision.**
+A transaction review desk that brings fraud screening and cited investigation guidance into one app.
 
-[Client demo](https://fraudline.vercel.app) · [Technical workbench](https://fraudline.vercel.app/workbench) · [A–Z learning guide](docs/learning-guide.md) · [GitHub Actions](https://github.com/hafiz-fansuri/fraudline/actions)
+**[Open the app](https://fraudline.vercel.app/)** · [Technical workbench](https://fraudline.vercel.app/workbench) · [A–Z learning guide](docs/unified-guide.md) · [Training code](fraudline/hybrid.py)
 
-![Fraudline client website with guided transaction checks](docs/client-desktop.jpg)
-
-## Contents
-
-[Introduction](#introduction) · [Objectives](#objectives) · [System architecture](#system-architecture) · [Methodology](#methodology) · [Demo: how to use](#demo-how-to-use) · [Clone and run locally](#clone-and-run-locally) · [Retrain with IEEE-CIS](#retrain-with-ieee-cis) · [Results](#results) · [Testing and operations](#testing-and-operations) · [Project structure](#project-structure) · [Limitations](#limitations) · [Conclusion](#conclusion)
+![Unified transaction review desk with risk findings and cited evidence](docs/unified-desk.jpg)
 
 ## Introduction
 
-Fraudline demonstrates how to build, evaluate, serve and monitor a machine-learning fraud detection system. It combines an IEEE-CIS-trained LightGBM model with explicit contextual controls, then explains the resulting decision through two web interfaces:
+Financial operations staff need to understand why a payment was flagged and what to check next. This app combines Fraudline's transaction scoring with Proofline's evidence-retrieval patterns. Select a transaction, inspect the model estimate and contextual findings, and retrieve relevant review guidance without switching apps.
 
-| Experience | Intended audience | What it provides |
-|---|---|---|
-| [Client website](https://fraudline.vercel.app) | Nontechnical visitors | Guided examples, editable details, readable outcomes, next steps and downloadable summaries |
-| [Technical workbench](https://fraudline.vercel.app/workbench) | Project owner and technical reviewers | Scenario testing, model evidence, feature coverage, monitoring reports and the learning guide |
-
-The experiment uses **590,540 labeled transactions**, including **20,663 fraud cases**, across chronological training and evaluation partitions. The model has **54 input features**. The public website uses **authored synthetic examples**, not real customer payments or copied competition records.
-
-This is an educational portfolio project, not a production banking or payment authorization service. The separate workbench address is not password protection.
+This is a public, synthetic-data demonstration intended to explore a banking workflow. It has **no bank connection, account authentication, tenant isolation or authority to move money**. Do not upload customer data. The old client checker remains at `/checker`; the engineering workbench remains at `/workbench`.
 
 ## Objectives
 
-1. Build a reproducible pipeline that validates raw data, creates features and records dataset/model lineage.
-2. Compare a simple logistic regression baseline with LightGBM on later, held-out transactions.
-3. Prevent current, equal-time and future events from leaking into behavioral history features.
-4. Separate the learned fraud probability from human-authored contextual policies.
-5. Explain decisions with model contributions, readable warnings and suggested next steps.
-6. Demonstrate model registration, promotion, rollback, audit records, drift monitoring and delayed-label evaluation.
-7. Provide an accessible client experience and a separate technical workbench using free hosting and local training.
+- Keep the analyst's job simple: select, understand, investigate and save a review.
+- Run the supplied Kaggle LightGBM → XGBoost residual approach outside Kaggle.
+- Keep one feature contract for training and single-transaction inference.
+- Explain model scores separately from contextual rules and investigation guidance.
+- Return inspectable, versioned evidence and abstain when no relevant passage exists.
+- Keep the public demo free, without paid AI calls or raw dataset uploads.
 
 ## System architecture
 
 ```mermaid
-flowchart TB
-  subgraph Training[Local training and evaluation]
-    CSV[Authorized IEEE transaction and identity CSVs] --> Join[One-to-one join and schema validation]
-    Join --> History[Past-only history and shared features]
-    History --> Split[Chronological partitions]
-    Split --> Fit[Logistic baseline and tuned LightGBM]
-    Fit --> Calibrate[Sigmoid calibration and cost thresholds]
-    Calibrate --> Evaluate[Promotion assessment and final holdout]
-    Evaluate --> Registry[Versioned model registry]
-    Registry -. optional tracking .-> MLflow[MLflow]
-  end
-  Registry --> Export[Export weights and aggregate evidence only]
-  Export --> Model[Verified inference bundle]
-  subgraph Serving[FastAPI serving]
-    Client[Client website] --> API[Validated prediction request]
-    Owner[Technical workbench] --> API
-    API --> Features[Same feature contract and earlier history]
-    Features --> Model
-    Model --> Probability[Calibrated probability and TreeSHAP]
-    API --> Rules[Explicit contextual controls]
-    Probability --> Decision[Most restrictive decision]
-    Rules --> Decision
-    Decision --> Receipt[Explanation and suggested next step]
-    Decision --> Audit[Transactional hash-linked audit record]
-  end
-  Audit -. local operations .-> Monitor[Drift and delayed-label monitoring]
-  Monitor -. new labeled data required .-> Fit
+flowchart LR
+    A["Synthetic examples / JSON import"] --> B["FastAPI: typed transaction validation"]
+    B --> C["54 shared features + past-only history"]
+    C --> D["LightGBM raw margin"]
+    D --> E["XGBoost residual + sigmoid calibration"]
+    B --> F["Explicit contextual controls"]
+    E --> G["Probability and review suggestion"]
+    F --> G
+    G --> H["Bounded investigation planner"]
+    P["Versioned illustrative playbooks"] --> I["Keyword + factor retrieval / rank fusion"]
+    H --> I
+    I --> J["Cited passages + human review steps"]
+    G --> K["SQLite audit / optional local Postgres"]
+    J --> U["Plain HTML, CSS, JavaScript desk"]
+    G --> U
 ```
 
-**Public Vercel deployment:** interface, verified model inference and temporary audit records. **Optional local stack:** PostgreSQL, MLflow, a monitoring worker, Prometheus and Grafana. Heavy training does not run inside a browser request or on the public serverless function.
+| Layer | Choice and reason |
+| --- | --- |
+| Frontend | HTML, CSS, JavaScript; existing self-hosted Sora and dark/neon HX identity, no frontend framework needed |
+| Backend | FastAPI and Pydantic; shared scoring/review API and strict input checks |
+| Detection | LightGBM + CPU-only XGBoost; native persisted models and calibrated probability |
+| Features | pandas/NumPy; shared 54-feature builder, strictly earlier history |
+| Investigation | Local bounded extractive RAG; Proofline-inspired rank fusion, citations and abstention, no external AI call |
+| Evidence | Ten original, versioned demo playbooks with SHA-256 provenance; not bank-approved policy |
+| Audit | SQLAlchemy SQLite; ephemeral on Vercel, optional local PostgreSQL |
+| Testing / CI | pytest, Ruff, GitHub Actions, synthetic scenarios and artifact integrity checks |
+| Hosting | Vercel FastAPI; training and optional operations run locally |
 
-| Layer | Technology | Why it is used |
-|---|---|---|
-| Data processing | pandas, NumPy, Pandera | Table joins, efficient time windows and training-data validation |
-| Modeling | LightGBM, scikit-learn, Optuna | Tree boosting, baseline/calibration and bounded hyperparameter search |
-| API | FastAPI, Pydantic | Typed payloads, validation and single/batch scoring |
-| Frontend | HTML, CSS, JavaScript | Two responsive interfaces without an additional framework/build system |
-| Storage | SQLAlchemy, SQLite / PostgreSQL | Transactional audit events and delayed labels |
-| Lifecycle | Native model bundles, JSON registry, optional MLflow/DVC | Reproducibility, evidence, promotion and rollback |
-| Monitoring | Evidently, Prometheus, Grafana | Distribution checks, service metrics and local dashboards |
-| Delivery | Docker Compose, GitHub Actions, Vercel | Local operations, automated checks and public inference hosting |
+Proofline's original Supabase/OpenRouter services and OWASP corpus are **not** called by this unified app. Its AI-security corpus is not a banking policy source. See [integration attribution](docs/PROOFLINE-NOTICE.md).
+
+## What input does inference get?
+
+The model receives a payment record, not a user's question or the fraud label. The backend turns it into 54 numerical features. The question goes only to the evidence retriever; it cannot change the fraud probability.
+
+Minimum request to `/api/review`:
+
+```json
+{
+  "transaction": {
+    "transaction_id": "DEMO-001",
+    "amount": 75.0,
+    "time_offset": 907200,
+    "product": "W",
+    "network": "visa",
+    "card_type": "debit",
+    "identity_present": true
+  },
+  "question": "What evidence and human review steps apply to this transaction?"
+}
+```
+
+Required scoring fields: positive amount, nonnegative relative time, IEEE product code (`W/C/R/H/S`), supported card network/type and identity-availability boolean. `transaction_id` is required by the import UI and must be unique in a file. Optional fields include pseudonymous account ID, device type, email domains, regions, distance, up to 200 earlier events, contextual location/authentication signals and 28 whitelisted anonymized C/D/M benchmark fields. Exact types and bounds are in [the API schema](https://fraudline.vercel.app/openapi.json) and [Transaction](fraudline/api.py).
+
+**Production integration:** the bank's backend would populate these inputs and retrieve trusted history. An analyst should not type 54 features. IEEE product codes and C/D/M fields are anonymized competition features, not universal banking fields. Missing values are handled, but that does not establish accuracy for a bank's data. Currency/time-zone conversion and a bank-specific retraining/mapping contract are required before real integration.
 
 ## Methodology
 
-### 1. Import and validate the data
+1. Merge labeled IEEE transaction and identity files; retain private data locally.
+2. Build the existing shared features, with history strictly before each transaction.
+3. Split chronologically: 325,908 training; 88,538 calibration; 88,013 promotion/research comparison; 88,081 final research interval.
+4. Within training, use three expanding-time folds. Fit LightGBM on the past and generate out-of-fold log-odds for later rows. Equal timestamps never cross fold boundaries; the earliest unscored prefix is excluded from residual fitting.
+5. Fit the final LightGBM on the training partition. Fit XGBoost with the out-of-fold log-odds as `base_margin`, as in the supplied residual idea.
+6. Fit a sigmoid calibrator and choose review/pause thresholds only on calibration rows. Persist both model stages, feature order, hashes and calibration.
+7. Evaluate without fitting on the research intervals. The same intervals were inspected during the earlier project: this is **not a new untouched benchmark**.
+8. At inference, apply contextual controls separately; they can escalate a suggestion without changing the model probability.
+9. Retrieve relevant playbooks by question keywords and fired control factors. Fuse ranks and return up to five unique playbooks, source passages, review steps and validated citation IDs.
 
-Join `train_transaction.csv` and `train_identity.csv` on `TransactionID`, enforcing a one-to-one relationship. Preserve transactions with missing identity data and represent the missingness explicitly. Validate IDs, types, supported categories and numeric bounds before preparing the dataset.
+### Changes from the Kaggle notebook
 
-Dataset SHA-256 fingerprints, row counts, fraud prevalence and source information are saved for traceability. Raw CSVs and prepared/reference rows remain local and are excluded from Git and deployment uploads. The competition test files have no labels, so they are not used to claim measured accuracy.
-
-### 2. Engineer behavioral features
-
-The shared feature contract includes amount/distance transformations, cyclic relative time, card/product categories, device type, email-domain comparisons, anonymized C/D/M fields and **11 history features**. These include transaction counts over one hour/day/week, small-charge bursts, amount ratio/z-score, device-type novelty and unusual relative hours.
-
-A hashed card/address composite groups related events; it is a proxy, not a verified customer account. Each history calculation uses **strictly earlier timestamps**. The current event, equal-time peers and future events are excluded. Fraud labels never enter the history windows.
-
-An available feature is not necessarily used by the fitted trees. For example, the small-charge input has zero split gain in this run; its explicit card-testing policy remains a separate control.
-
-### 3. Split chronologically, train and calibrate
-
-![Chronological partitions with exact row counts](docs/charts/chronological-split.svg)
-
-| Interval | Rows | Purpose |
-|---|---:|---|
-| Training | 325,908 | Fit the logistic baseline and LightGBM; tune within this interval |
-| Calibration | 88,538 | Fit sigmoid calibration and select review/block thresholds |
-| Promotion | 88,013 | Assess the candidate against an existing champion, when present |
-| Final test | 88,081 | Report later held-out performance without fitting/tuning on its labels |
-
-Six seeded Optuna trials use an internal chronological split **inside the training interval**. The selected IEEE model uses 300 trees, 15 leaves and L2 regularization of approximately 3.621. A sigmoid calibrator maps raw tree scores to probabilities on the separate calibration interval.
-
-Each model chooses its own policy thresholds on calibration data. The illustrative cost assumptions are a $3 review, 20% missed fraudulent value after review, and a $15 false block. They are not measured business costs or actual savings. Calibration and threshold selection share an interval; the later final test provides a separate assessment.
-
-The actual learning code is [`fraudline/pipeline.py`, `_train()`](fraudline/pipeline.py). Look for `LGBMClassifier(...).fit(x, y)`.
-
-### 4. Add contextual controls without changing the probability
-
-| Factor | Learned inputs / proxies | Additional explicit checks |
-|---|---|---|
-| Amount anomalies | Amount, historical ratio/z-score, small-charge count | Large deviations and repeated small charges |
-| Velocity | Prior hour/day/week transaction counts | High transaction rate and supplied login failures |
-| Location | Anonymized distance/region proxies | Supplied country mismatch and implausible coordinate travel |
-| Device changes | Device type and type novelty | New supplied physical device and device sharing |
-| Time patterns | Relative cyclic time and unseen-hour history | Activity at an unusual relative hour |
-| Merchant risk | Product proxy, not merchant category | Supplied gift-card, crypto or gambling category |
-| Account behavior | No password/payee events in IEEE | Recent password change; new payee plus withdrawal |
-| Network links | No trained fraud-ring graph | Distinct accounts sharing a supplied device |
-| Identity mismatches | Domains, identity availability and anonymized matches | Supplied identity mismatch/disposable-email flags |
-
-GPS travel, passwords, payees, merchant categories and verified identity flags are **not learned from IEEE**. They are separately labeled policies applied to supplied context. The network check is a simple shared-device relationship count, not a validated fraud-ring model.
-
-### 5. Score, explain and record the result
-
-```mermaid
-sequenceDiagram
-  actor Visitor
-  participant UI as Client website
-  participant API as FastAPI
-  participant Model as LightGBM and calibrator
-  participant Rules as Context controls
-  participant Store as Audit store
-  Visitor->>UI: Choose and edit a synthetic example
-  UI->>API: Transaction, earlier history and context
-  API->>API: Validate and build shared features
-  API->>Model: Score and explain
-  Model-->>API: Probability, model decision and contributions
-  API->>Rules: Check supplied history and context
-  Rules-->>API: Activated warnings
-  API->>API: Select the most restrictive decision
-  API->>Store: Append scoring record
-  API-->>UI: Probability, final decision, warnings and reference
-  UI-->>Visitor: Readable outcome and suggested next step
-```
-
-A contextual check can escalate an approval to review or block, but **does not alter the calibrated probability**. A model block cannot be downgraded by benign context. TreeSHAP contributions explain model associations in raw log-odds, not causal reasons or percentage-point effects.
+[Portable training](fraudline/hybrid.py) accepts paths and CPU limits. It needs no `/kaggle/input`, GPU, unlabeled competition test set or submission file. It uses 54 serving-compatible features instead of 488 transductive notebook features; train+test aggregates and batch-dependent rank blending are removed. Grouped folds that could train on later timestamps are replaced with expanding-time folds. All serving artifacts are saved. Consequently, the notebook's reported metrics are not comparable evidence for this app.
 
 ## Demo: how to use
 
-### Client website
+1. Open the [unified desk](https://fraudline.vercel.app/). Eleven authored synthetic cases are available.
+2. Select a transaction. Read the model estimate, suggestion and separate contextual findings.
+3. Open **Model details and limitations** to inspect thresholds, model version and audit reference.
+4. Ask a review question under **Investigate with evidence**. Read suggested human steps and expand the cited source passages.
+5. Use **Save review** to download the assessment and evidence as JSON.
+6. Use **Download example JSON**, edit synthetic values, then **Import JSON**. Format: `{"transactions": [...]}`; 1–100 unique transaction IDs, maximum 256 KiB. Import validates and scores records; it does not train the model. Validation scoring also writes audit entries.
 
-Open **[fraudline.vercel.app](https://fraudline.vercel.app)**. No account or payment information is required.
+The queue and saved UI assessments last only for the current page session. No transaction is blocked, approved at a payment network or submitted to a regulator. Public Vercel audit storage is temporary.
 
-1. Select **Explore a transaction**.
-2. Choose an everyday purchase, unusual spending, a new device or unusual travel. The selector also exposes all eleven examples.
-3. Review the amount/device. Optionally add purchase or account context.
-4. Select **Check this example**.
-5. Read the suggested outcome, model estimate, warning signals and next step.
-6. Use **Save this summary** to download a text receipt, or reopen one of the three recent checks.
+## Clone and run
 
-Editing details clears the old result. Recent checks last only in browser memory and disappear on reload. The dark, minimal client design uses lime/cyan accents and a small magenta **HX** footer signature.
+Windows PowerShell, Python 3.11–3.13 and [uv](https://docs.astral.sh/uv/):
 
-### Technical workbench
-
-Open **[fraudline.vercel.app/workbench](https://fraudline.vercel.app/workbench)** to run the eleven-scenario suite, inspect individual model/policy decisions, compare evaluation metrics, review nine-factor coverage, open the learning guide and inspect operations reports.
-
-<details>
-<summary>View the technical workbench</summary>
-
-![Technical investigation interface with IEEE evidence and decision receipt](docs/ieee-workbench.jpg)
-
-</details>
-
-### A useful example
-
-The synthetic Malaysia-to-Brazil scenario produces a model probability of approximately **1.9%** and an initial model approval. Its supplied travel history triggers an implausible-travel control, so the final decision becomes **block / pause and verify**. The probability stays at 1.9%. This demonstrates the distinction between a statistical estimate and a policy action—not that a real fraudulent payment was detected.
-
-## Clone and run locally
-
-### Prerequisites
-
-- Git.
-- Python **3.11–3.13** and [uv](https://docs.astral.sh/uv/).
-- No Kaggle download, paid API key, Docker or model training is needed for the bundled-model quick start.
-
-Windows local execution and Linux CI have been checked. Linux installations may need the system OpenMP package `libgomp1` if LightGBM reports a missing native library; macOS setup has not been verified.
-
-### 1. Clone the repository and install the locked dependencies
-
-```sh
+```powershell
 git clone https://github.com/hafiz-fansuri/fraudline.git
 cd fraudline
-uv sync --frozen
+uv sync --frozen --extra dev --extra train
+$env:FRAUDLINE_ARTIFACTS = (Resolve-Path demo-bundle).Path
+uv run uvicorn fraudline.api:app --host 127.0.0.1 --port 8000
 ```
 
-### 2. Point the server at the included IEEE model
+Open `http://127.0.0.1:8000`. The verified bundle is included; downloading IEEE data is unnecessary for inference. Do not set `VERCEL` locally. The repository contains no provider secret, customer records or raw IEEE CSVs.
 
-**Windows PowerShell:**
+### Train outside Kaggle
+
+Download IEEE-CIS data yourself under its competition terms. Keep it outside Git. Prepare a separate private run directory:
 
 ```powershell
-$env:FRAUDLINE_ARTIFACTS = (Resolve-Path .\demo-bundle).Path
-uv run uvicorn fraudline.api:app --host 127.0.0.1 --port 8012
-```
-
-**Linux / Bash:**
-
-```bash
-FRAUDLINE_ARTIFACTS="$PWD/demo-bundle" uv run uvicorn fraudline.api:app --host 127.0.0.1 --port 8012
-```
-
-Open the [local client website](http://127.0.0.1:8012) or [local workbench](http://127.0.0.1:8012/workbench). Check [readiness](http://127.0.0.1:8012/ready) to confirm the loaded model. Stop the server with **Ctrl+C**.
-
-The exported `demo-bundle/` already contains verified model weights, calibration, thresholds and aggregate evaluation evidence. Serving it does not require access to raw training records. Local audit events are written under ignored `runtime/` storage.
-
-### 3. Optional: install development and operations tools
-
-```sh
-uv sync --frozen --extra dev --extra ops
-```
-
-These extras add testing, training, tuning, tracking and monitoring tools; they are not needed for the minimal inference quick start.
-
-## Retrain with IEEE-CIS
-
-Obtain the original competition data through [Kaggle](https://www.kaggle.com/competitions/ieee-fraud-detection) under its terms. Put `train_transaction.csv` and `train_identity.csv` in an accessible folder. The raw files are not included in this repository.
-
-Stop the local server before switching artifact environments. Use a separate `runs/ieee` workspace so synthetic and real-data registries do not mix. **Clear `FRAUDLINE_ARTIFACTS` from the quick start before training**; otherwise that override would direct writes into the serving export.
-
-**Windows PowerShell**—adjust the dataset path:
-
-```powershell
-uv sync --frozen --extra dev --extra ops
 Remove-Item Env:FRAUDLINE_ARTIFACTS -ErrorAction SilentlyContinue
 $env:FRAUDLINE_HOME = Join-Path (Get-Location) 'runs/ieee'
-
-uv run python -m fraudline.pipeline prepare --ieee 'C:\path\to\ieee-fraud-detection'
-uv run python -m fraudline.pipeline train --tune
-uv run python -m scripts.test_scenarios
-uv run python -m fraudline.monitor --demo
-uv run python -m scripts.export_demo
-
-uv run uvicorn fraudline.api:app --host 127.0.0.1 --port 8012
+uv run python -m fraudline.pipeline prepare --ieee '..\ieee-fraud-detection'
+uv run python -m fraudline.hybrid --data runs/ieee/data/transactions.parquet --output runs/ieee/artifacts/models/my-hybrid --rounds 300 --threads 2
 ```
 
-**Linux / Bash:**
-
-```bash
-uv sync --frozen --extra dev --extra ops
-unset FRAUDLINE_ARTIFACTS
-export FRAUDLINE_HOME="$PWD/runs/ieee"
-
-uv run python -m fraudline.pipeline prepare --ieee /path/to/ieee-fraud-detection
-uv run python -m fraudline.pipeline train --tune
-uv run python -m scripts.test_scenarios
-uv run python -m fraudline.monitor --demo
-uv run python -m scripts.export_demo
-
-uv run uvicorn fraudline.api:app --host 127.0.0.1 --port 8012
-```
-
-`prepare` saves validated Parquet data and lineage locally. `train` fits, calibrates, evaluates and updates the run registry. `test_scenarios` checks the real API path with synthetic cases. `monitor --demo` generates a labeled synthetic drift exercise; it does not retrain. `export_demo` copies only model weights, metadata and aggregate evidence to `demo-bundle/`, never raw/reference rows.
-
-Restart the API after promotion or rollback: it pins a verified model at startup. Do not run synthetic preparation in the IEEE run directory or repeatedly tune against the published final holdout.
+The output directory must be new. Training verifies prepared-data lineage and writes `model.txt`, `residual.ubj`, `metadata.json` and `evaluation.json`. **Training happens in `fraudline/hybrid.py`, inside `train()`**. The earlier single-stage pipeline remains in `fraudline/pipeline.py`; it does not train the new hybrid. No automatic replacement of the served champion occurs when running the hybrid training command. Review results and update/export the registry explicitly; see the [learning guide](docs/unified-guide.md).
 
 ## Results
 
-Results below come from model **`fl-20261117072348-496b08`**, evaluated on **88,081 later held-out transactions**. They are not scores measured from the synthetic website examples.
+![Earlier LightGBM compared with the residual hybrid on the reused research interval](docs/charts/hybrid-comparison.svg)
 
-![Model ranking quality and review-threshold trade-off on the IEEE holdout](docs/charts/model-comparison.svg)
+![Chronological dataset partitions](docs/charts/chronological-split.svg)
 
-| Measure | Logistic baseline | LightGBM | Interpretation |
-|---|---:|---:|---|
-| Average precision / PR-AUC ↑ | 0.1301 | **0.4614** | Better concentration of fraud near the top of the ranking |
-| ROC-AUC ↑ | 0.7993 | **0.8754** | Better separation of fraudulent and legitimate events |
-| Brier score ↓ | 0.03845 | **0.02429** | Lower mean squared probability error |
-| Recall at review threshold ↑ | **90.34%** | 78.17% | Baseline catches more fraud at its own, more permissive policy |
-| False-positive rate ↓ | 55.70% | **19.31%** | LightGBM flags fewer legitimate events for review |
-| Hypothetical cost / transaction ↓ | 3.2365 | **2.4750** | Lower loss under the illustrative cost assumptions |
+Executed local CPU run: `fl-hybrid-20261124-final`, 300 rounds per stage, two threads, 590,540 labeled IEEE rows distributed across the splits above. Trees fit the training partition; they do not fit all 590,540 rows. Published metrics are from 88,081 later rows.
 
-**The trade-off matters:** LightGBM improves ranking, probability error and hypothetical cost, but its selected policy has lower recall than the baseline. A **19.3% legitimate false-positive rate is still substantial**. Product W average precision is only **0.0962**, so aggregate results hide a weaker slice. These results do not establish production readiness or actual financial savings.
+| Measure | Earlier LightGBM | New residual hybrid |
+| --- | ---: | ---: |
+| Average precision / PR-AUC | 0.46145 | 0.46008 |
+| ROC-AUC | 0.87543 | 0.87565 |
+| Brier score (lower better) | 0.02429 | 0.02457 |
+| Recall at review threshold | 0.78173 | 0.78467 |
+| False-positive rate | 0.19307 | 0.18681 |
 
-The IEEE dataset is about 3.5% fraud. An always-approve classifier could look about 96.5% accurate while detecting no fraud, which is why ordinary accuracy is not the headline metric.
+The hybrid is served to implement the requested model architecture, **not because it proves superior accuracy**. Thresholds differ by calibration. The false-positive burden remains substantial. These are research results on reused, previously inspected intervals, not production savings or proof of readiness.
 
-### Serving and synthetic checks
+[Original single-stage charts and historical verification](docs/ieee-verification.md) remain historical evidence. Current machine-readable evaluation is in [the bundle](demo-bundle/models/fl-hybrid-20261124-final/evaluation.json).
 
-| Check | Executed outcome | What it establishes |
-|---|---|---|
-| Regression suite | **30 tests passed** | API contracts, integrity, audit behavior, temporal isolation and other tested logic |
-| Synthetic end-to-end suite | **11/11 expected-factor checks passed** | Serving/control behavior, not classifier accuracy |
-| Public API exercise | Baseline approved; travel case paused/blocked; invalid amounts rejected | Hosted scoring and validation work on the checked examples |
-| Client UI | Desktop, 375px mobile and landscape checked | Guided flow, recent checks, summary download and responsive layout |
-| CI | Lint, tests, bundle/scenario checks, lifecycle smoke run, runtime audit and Docker build | Automated implementation checks |
+## Tests and delivery
 
-See [IEEE execution evidence](docs/ieee-verification.md), [client verification](docs/client-experience.md) and the [model card](docs/model-card.md). The [earlier synthetic-stack exercise](docs/verification.md) is historical; its latency/coverage measurements are not measurements of this IEEE model.
-
-## Testing and operations
-
-### Run the checks
-
-```sh
-uv sync --frozen --extra dev --extra ops
-uv run ruff check fraudline app.py scripts tests
+```powershell
+uv run ruff check fraudline app.py tests scripts
 uv run pytest -q
+$env:FRAUDLINE_ARTIFACTS = (Resolve-Path demo-bundle).Path
+uv run python -m scripts.test_scenarios
 ```
 
-To exercise the committed serving bundle with synthetic API cases, use `FRAUDLINE_ARTIFACTS=demo-bundle` for `uv run python -m scripts.test_scenarios`. To regenerate the README charts from committed metadata/evaluation, run:
+Tests cover shared features, chronological boundaries, native model integrity, hybrid batch/single parity, contextual controls, audit behavior, cited retrieval, abstention and API rejection of target labels. Eleven synthetic scenarios exercise serving and controls; **they do not measure classifier accuracy**. Citation ID validation does not establish claim support or policy correctness.
 
-```sh
-uv run --extra ops python -m scripts.plot_readme
-```
-
-### Optional full local stack
-
-With Docker running:
-
-```sh
-uv run python scripts/up.py
-```
-
-The helper creates ignored local credentials and launches PostgreSQL, MLflow, bootstrap training, the API, monitoring, Prometheus and Grafana.
-
-| Service | Local address |
-|---|---|
-| Client / workbench | [localhost:8013](http://localhost:8013) / [/workbench](http://localhost:8013/workbench) |
-| MLflow | [localhost:5013](http://localhost:5013) |
-| Prometheus | [localhost:9093](http://localhost:9093) |
-| Grafana | [localhost:3013](http://localhost:3013) |
-
-Compose's default mounts/bootstrap use a **separate synthetic lifecycle**, not the published IEEE run. To operate on IEEE locally, adjust its artifact/data mounts to that run first. Do not expose the local stack or its generated `.env` credentials publicly. `docker compose down` preserves volumes; `down -v` removes them.
-
-The monitor distinguishes distribution drift from accuracy: delayed ground-truth labels are needed to measure performance. Retraining requires a new validated labeled dataset and a cooldown; the browser does not trigger it. MLflow tracking is opt-in through `MLFLOW_TRACKING_URI`. DVC stages support the synthetic workflow and are not an automatic reproduction of the executed IEEE experiment.
-
-### Hosting
-
-Vercel loads the included bundle through `app.py`; training stays local. GitHub Actions verifies code, the committed serving bundle and a synthetic lifecycle. Production publishing is explicit via `npx vercel deploy --prod` from a checkout linked to the intended Vercel project, or through an optional configured `VERCEL_DEPLOY_HOOK` after checks. Do not assume the Git integration or hook is connected merely because CI is green.
-
-The compatible OpenMP runtime and its license/notice are under [`native/`](native/NOTICE.md). Vercel audit storage is instance-local `/tmp`, can disappear and is not a shared durable ledger. Continuous monitoring and durable PostgreSQL remain local-stack capabilities.
-
-## Project structure
-
-```text
-fraudline/
-├── fraudline/
-│   ├── data.py            # Import, validation, shared features and time splits
-│   ├── history.py         # Past-only behavioral windows
-│   ├── pipeline.py        # Actual training, calibration, evaluation and registry
-│   ├── model.py           # Verified inference and TreeSHAP contributions
-│   ├── signals.py         # Explicit contextual policies and factor coverage
-│   ├── scenarios.py       # Authored synthetic cases
-│   ├── api.py             # Validated HTTP endpoints and interface routes
-│   ├── store.py           # Audit events and delayed labels
-│   ├── monitor.py         # Drift/performance reports and guarded retraining
-│   └── web/               # Client site, technical workbench and learning guide
-├── demo-bundle/           # Public-safe committed model and aggregate evidence
-├── scripts/               # Export, scenario checks, charts and local operations
-├── tests/                 # Regression tests
-├── docs/                  # Learning guide, model card, runbook and evidence
-├── infra/                 # Local monitoring/database configuration
-├── app.py                 # Vercel entrypoint
-├── compose.yaml           # Optional local operations stack
-├── pyproject.toml         # Dependencies and optional tool groups
-└── uv.lock                # Locked Python dependency resolution
-```
-
-## Limitations
-
-- Anonymized IEEE fields and hashed entity proxies have uncertain real authorization-time semantics.
-- Public requests supply their own history, capped at 200 events. Real operation needs trusted, complete event-time history; offline and truncated online histories may differ.
-- GPS, device IDs, merchant categories, password/payee events and identity flags are supplied context, not connected verification services or learned IEEE evidence.
-- Costs and control thresholds are illustrative. Review capacity, customer impact and external-bank performance have not been validated.
-- Audit chains provide tamper evidence, not administrator-proof immutability. Public storage is ephemeral, and `/workbench` has no authentication.
-- The final test must stop being called untouched if future iterations use its published results to select changes.
-- No real payments, production SLA, causal fraud explanations, validated fraud-ring detector or demonstrated financial savings are claimed.
+GitHub Actions verifies changes to `main`. Vercel is published separately through the CLI unless a deployment hook is configured. The optional local Docker/MLflow/Prometheus/Grafana stack remains documented in [the runbook](docs/runbook.md); it is not continuously running on Vercel.
 
 ## Conclusion
 
-Fraudline connects data validation, time-aware features, model training, calibration, evaluation and serving in one inspectable project. LightGBM improves ranking quality and reduces false positives relative to the baseline's selected policy, while leaving a meaningful review burden and weaker product slices that require further work.
+The combined app turns a model score into a reviewable workflow: one transaction, clear findings, inspectable guidance and a human next step. It is an educational foundation for a bank-specific system. Operational adoption requires approved policies, trusted history, access controls, durable audit storage, fresh validation and a separately reviewed payment integration.
 
-The client website makes the results easier to understand; the technical workbench exposes the evidence behind them. The next engineering steps would be trusted history retrieval, durable access-controlled storage, stronger external/temporal validation and business-validated review policies—not simply adding more infrastructure.
-
-For the full explanation of the code and design choices, start with the **[A–Z learning guide](docs/learning-guide.md)**, then read the [training source](fraudline/pipeline.py), [runbook](docs/runbook.md) and [model card](docs/model-card.md).
+Learn why each component exists and how to extend it in [the A–Z unified guide](docs/unified-guide.md). Earlier implementation details remain in [the original learning guide](docs/learning-guide.md).

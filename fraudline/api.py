@@ -88,6 +88,16 @@ class Batch(BaseModel):
     transactions: list[Transaction] = Field(min_length=1, max_length=100)
 
 
+class Review(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    transaction: Transaction
+    question: str = Field(
+        default="What evidence and human review steps apply to this transaction?",
+        min_length=8,
+        max_length=1200,
+    )
+
+
 def create_app(model_path=None, database_url=None):
     metrics = CollectorRegistry()
     count = Counter("fraudline_requests_total", "Requests by status", ["status"], registry=metrics)
@@ -227,6 +237,23 @@ def create_app(model_path=None, database_url=None):
     def batch(payload: Batch):
         return {"predictions": score(payload.transactions)}
 
+    @app.post("/api/review")
+    def review(payload: Review):
+        from fraudline.investigation import investigate
+
+        result = score([payload.transaction])[0]
+        return {
+            "transaction_id": payload.transaction.transaction_id,
+            "risk": result,
+            "investigation": investigate(result, payload.question),
+        }
+
+    @app.get("/api/playbooks")
+    def playbooks():
+        from fraudline.investigation import sources
+
+        return {"sources": sources(), "external_calls": False}
+
     @app.get("/api/samples")
     def samples():
         frame = synthetic(180, seed=73)
@@ -307,6 +334,10 @@ def create_app(model_path=None, database_url=None):
 
     @app.get("/")
     def index():
+        return FileResponse(static / "desk.html")
+
+    @app.get("/checker", include_in_schema=False)
+    def checker():
         return FileResponse(static / "client.html")
 
     @app.get("/workbench", include_in_schema=False)

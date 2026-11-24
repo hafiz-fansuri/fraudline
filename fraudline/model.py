@@ -31,9 +31,25 @@ class Model:
         self.booster = lgb.Booster(model_file=str(folder / "model.txt"))
         if self.booster.feature_name() != self.meta["features"]:
             raise ValueError("Model feature order mismatch")
+        self.residual = None
+        if self.meta.get("model_kind") == "lgb-xgb-residual":
+            import xgboost as xgb
+
+            if sha256(folder / "residual.ubj") != self.meta["residual_sha256"]:
+                raise ValueError("Residual model integrity mismatch")
+            self.residual = xgb.Booster(model_file=folder / "residual.ubj")
+            self.residual.set_param({"nthread": 1})
+            if self.residual.feature_names != self.meta["features"]:
+                raise ValueError("Residual feature order mismatch")
 
     def probabilities(self, records):
         raw = self.booster.predict(features(records, self.meta["features"]), raw_score=True, num_threads=1)
+        if self.residual is not None:
+            import xgboost as xgb
+
+            raw = self.residual.predict(
+                xgb.DMatrix(features(records, self.meta["features"]), base_margin=raw), output_margin=True
+            )
         return self.calibrate(raw)
 
     def calibrate(self, raw):
@@ -45,6 +61,8 @@ class Model:
         explanation = self.booster.predict(x, pred_contrib=True, num_threads=1)
         # TreeSHAP contributions plus the bias sum to the raw model score.
         probability = self.calibrate(explanation.sum(axis=1))
+        if self.residual is not None:
+            probability = self.probabilities(records)
         contributions = explanation[:, :-1]
         review, block = self.meta["thresholds"]["review"], self.meta["thresholds"]["block"]
         results = []
@@ -67,7 +85,11 @@ class Model:
                     "decision": "block" if p >= block else "review" if p >= review else "approve",
                     "thresholds": {"review": review, "block": block},
                     "reasons": reasons,
-                    "reason_scale": "uncalibrated log-odds; associations, not causes",
+                    "reason_scale": (
+                        "LightGBM stage only; excludes XGBoost residual; not a full hybrid explanation"
+                        if self.residual is not None
+                        else "uncalibrated log-odds; associations, not causes"
+                    ),
                     "data_source": self.meta["data_source"],
                 }
             )

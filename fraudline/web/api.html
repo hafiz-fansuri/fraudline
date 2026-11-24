@@ -8,13 +8,13 @@
   </head>
   <body>
     <main class="guide">
-      <a href="/">← Workbench</a>
+      <a href="/">← Transaction desk</a>
       <h1>API reference</h1>
       <p>
         Use authored synthetic values only. No real payment or personal
         information.
       </p>
-      <h2>Score a transaction</h2>
+      <h2>Score and investigate</h2><p><code>POST /api/review</code> accepts <code>{"transaction": {...}, "question": "What evidence and human review steps apply?"}</code>. It returns the scored <code>risk</code> and a separate <code>investigation</code> containing cited local playbooks, suggested human steps, provenance and the bounded tool trace. Questions never alter the probability. Guidance is illustrative, not approved bank policy; no external language model is called.</p><p><code>GET /api/playbooks</code> lists the evidence corpus. Exact request schemas are in <a href="/openapi.json">OpenAPI JSON</a>.</p><h2>Score a transaction</h2>
       <p>
         <code>POST /predict</code> accepts a transaction object. Get complete
         examples, including history and context, from

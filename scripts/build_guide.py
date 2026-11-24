@@ -6,7 +6,7 @@ from pathlib import Path
 from markdown_it import MarkdownIt
 
 root = Path(__file__).resolve().parents[1]
-source = root / "docs/learning-guide.md"
+source = root / "docs/unified-guide.md"
 web = root / "fraudline/web"
 body = MarkdownIt("commonmark", {"html": False}).enable("table").render(source.read_text(encoding="utf-8"))
 (web / "guide.html").write_text(

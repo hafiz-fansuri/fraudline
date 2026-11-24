@@ -20,7 +20,9 @@ if model_root.exists():
             shutil.rmtree(stale)
 target = out / "models" / state["champion"]
 target.mkdir(parents=True, exist_ok=True)
-for name in ["model.txt", "metadata.json", "evaluation.json"]:
+for name in ["model.txt", "metadata.json", "evaluation.json"] + (
+    ["residual.ubj"] if model.residual is not None else []
+):
     shutil.copy2(folder / name, target / name)
 (out / "reports").mkdir(exist_ok=True)
 for name in ["demo-drift.json", "synthetic-tests.json"]:

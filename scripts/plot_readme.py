@@ -15,6 +15,11 @@ version = json.loads((bundle / "registry.json").read_text())["champion"]
 folder = bundle / "models" / version
 metadata = json.loads((folder / "metadata.json").read_text())
 evaluation = json.loads((folder / "evaluation.json").read_text())
+hybrid = metadata.get("model_kind") == "lgb-xgb-residual"
+if hybrid:
+    previous = json.loads((bundle / "registry.json").read_text())["previous"]
+    evaluation["baseline"] = json.loads((bundle / "models" / previous / "evaluation.json").read_text())["final_test"]
+comparison_labels = ["Earlier LightGBM", "Residual hybrid"] if hybrid else ["Logistic baseline", "LightGBM"]
 out = ROOT / "docs" / "charts"
 out.mkdir(exist_ok=True)
 
@@ -32,7 +37,7 @@ for ax, names, labels in zip(
 ):
     positions = np.arange(len(names))
     for offset, key, label, color in zip(
-        [-0.18, 0.18], ["baseline", "final_test"], ["Logistic baseline", "LightGBM"], colors, strict=True
+        [-0.18, 0.18], ["baseline", "final_test"], comparison_labels, colors, strict=True
     ):
         values = [evaluation[key][name] for name in names]
         assert all(0 <= value <= 1 for value in values)
@@ -49,7 +54,7 @@ for ax, names, labels in zip(
 axes[0].set_title("Ranking quality", loc="left", pad=17, fontweight="bold")
 axes[1].set_title("Review-threshold trade-off", loc="left", pad=17, fontweight="bold")
 fig.suptitle(
-    f"IEEE-CIS: {evaluation['final_test']['rows']:,} later held-out transactions",
+    f"IEEE-CIS: {evaluation['final_test']['rows']:,} later research transactions (previously inspected)",
     x=0.07,
     ha="left",
     fontsize=16,
@@ -66,7 +71,7 @@ fig.text(
     fontsize=9,
 )
 fig.tight_layout(rect=(0.025, 0.16, 0.99, 0.9))
-fig.savefig(out / "model-comparison.svg", facecolor="white")
+fig.savefig(out / ("hybrid-comparison.svg" if hybrid else "model-comparison.svg"), facecolor="white")
 plt.close(fig)
 
 fig, ax = plt.subplots(figsize=(12, 2.8))

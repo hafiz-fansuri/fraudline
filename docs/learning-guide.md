@@ -1,3 +1,5 @@
+> Historical single-stage guide. The current combined app and hybrid are explained in [the unified guide](unified-guide.md). The old client entry now lives at `/checker`.
+
 # Fraudline: the complete A–Z learning guide
 
 A practical walkthrough: what was built, how it works, why these choices were made, how to reproduce it, and what its results actually mean.

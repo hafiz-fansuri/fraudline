@@ -1,3 +1,7 @@
+# Unified analyst desk — 24 November 2026
+
+Operate mode at `/`, implemented in desk.html, desk.css and desk.js. Inherit the established charcoal/lime/cyan/Sora/HX language. Task-first transaction ledger and receipt, searchable and filterable, with progressive disclosure of model details and cited playbooks. Stack on mobile with bounded queue scroll. Import/export are JSON and synthetic-only. The original client design below is retained at `/checker`; technical workbench remains `/workbench`.
+
 # Fraudline interface
 
 ## Client experience (current public entry)

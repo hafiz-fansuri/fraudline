@@ -1,354 +1,204 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fraudline — A–Z learning guide</title><link rel="stylesheet" href="/assets/style.css?v=20261117-2"></head><body><main class="guide"><a href="/workbench#learn">← Back to the workbench</a><p><a href="/assets/learning-guide.md" download>Download Markdown guide</a></p><h1>Fraudline: the complete A–Z learning guide</h1>
-<p>A practical walkthrough: what was built, how it works, why these choices were made, how to reproduce it, and what its results actually mean.</p>
-<h2>Results of this executed experiment</h2>
-<p>The experiment for model <code>fl-20261117072348-496b08</code> used all 590,540 supplied labeled transactions across chronological partitions, with 54 features. The trees fitted 325,908 earlier transactions; 88,538 calibrated probabilities/thresholds, 88,013 assessed promotion, and 88,081 formed the final later holdout. Holdout labels never fitted the trees. LightGBM average precision is 0.4614 versus logistic regression 0.1301; ROC-AUC is 0.8754; Brier score is 0.02429. At the selected review threshold, fraud recall is 78.17% and legitimate false-positive rate is 19.31%. That review burden is substantial. Product W average precision is only 0.0962, an important weakness hidden by the aggregate metric.</p>
-<p>All 11 authored synthetic cases passed their expected-factor checks through the actual IEEE-model API. Thirty regression tests passed. These checks establish serving/control behavior, not real-world accuracy. Review threshold is 0.033235 and block threshold 0.195882, chosen using the illustrative calibration-period costs described below. The separate execution report includes exact split counts, baseline comparison and scenario-by-scenario results.</p>
-<h2>A. What this project does</h2>
-<p>Fraudline is an educational fraud investigation application. A Python API scores a transaction with a trained machine-learning model, explains its strongest model contributions, applies contextual risk controls, and saves a decision record. The browser lets you investigate authored synthetic cases and inspect actual training evidence.</p>
-<p>It does not move money, connect to a payment processor, identify real people, or prove that somebody committed fraud. The public deployment should receive synthetic inputs only.</p>
-<p>The key distinction is <strong>probability versus decision</strong>. LightGBM estimates fraud probability using features learned on IEEE-CIS. Explicit controls can escalate an approve to review or block. They never silently change that calibrated probability. The receipt shows both the model decision and the final decision.</p>
-<h2>B. Architecture: follow one transaction</h2>
-<pre><code class="language-text">IEEE transaction CSV + identity CSV
-  → validate and one-to-one join
-  → pseudonymous entity proxy + past-only history features
-  → chronological train / calibration / promotion / final test
-  → logistic baseline + LightGBM + sigmoid calibration
-  → verified model bundle: weights, metadata, evaluation
-
-Synthetic case + supplied history + optional context
-  → Pydantic API validation
-  → shared feature builder
-  → calibrated probability + TreeSHAP explanation
-  → contextual controls + most restrictive decision
-  → hash-linked audit record
-  → investigation receipt in the browser
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fraudline — A–Z learning guide</title><link rel="stylesheet" href="/assets/style.css?v=20261117-2"></head><body><main class="guide"><a href="/workbench#learn">← Back to the workbench</a><p><a href="/assets/learning-guide.md" download>Download Markdown guide</a></p><h1>Unified app: learning guide from input to evidence</h1>
+<p>This guide explains the November 2026 combination of Fraudline and Proofline. Read it alongside the source files. The original single-stage learning guide remains historical background, not the current hybrid's training specification.</p>
+<h2>A. Start with the user's job</h2>
+<p>A fraud analyst receives a payment, decides which details require investigation and records a reasoned human decision. The app supports that task through a queue and a selected-transaction receipt. It is not a bank payment gateway. A green result means no configured alert, not a guarantee that a payment is legitimate.</p>
+<p>The old public example checker is preserved at <code>/checker</code>. Technical model evidence and monitoring remain at <code>/workbench</code>. Neither route is an authentication boundary.</p>
+<h2>B. What comes into the system?</h2>
+<p>The transaction, earlier history and supplied context are the scoring inputs. A review question is a separate retrieval input. A label such as <code>isFraud</code> is never an inference input; it is available only in the training dataset.</p>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>Why it exists</th>
+<th>Where it would come from in a bank</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>transaction_id</td>
+<td>Trace one review</td>
+<td>Payment event identifier</td>
+</tr>
+<tr>
+<td>amount</td>
+<td>Detect amount patterns</td>
+<td>Payment authorization event, in validated model currency</td>
+</tr>
+<tr>
+<td>time_offset</td>
+<td>Relative time and history windows</td>
+<td>Bank timestamp mapping; not an invented local clock</td>
+</tr>
+<tr>
+<td>product</td>
+<td>IEEE product category</td>
+<td>A validated bank-specific mapping or retrained feature</td>
+</tr>
+<tr>
+<td>network / card_type</td>
+<td>Card category patterns</td>
+<td>Payment metadata</td>
+</tr>
+<tr>
+<td>identity_present</td>
+<td>Identity data availability</td>
+<td>Checkout/identity metadata; not identity verification success</td>
+</tr>
+<tr>
+<td>account_id</td>
+<td>Group earlier activity</td>
+<td>Pseudonymous internal account key</td>
+</tr>
+<tr>
+<td>history</td>
+<td>Velocity, amount baseline, novelty</td>
+<td>Trusted server-side history store</td>
+</tr>
+<tr>
+<td>device_type / domains / regions</td>
+<td>Additional model proxies</td>
+<td>Approved device/payment metadata</td>
+</tr>
+<tr>
+<td>context</td>
+<td>Explicit rule inputs</td>
+<td>Trusted location, authentication and payee services</td>
+</tr>
+<tr>
+<td>benchmark_signals</td>
+<td>Anonymized IEEE C/D/M values</td>
+<td>Competition-only unless a validated equivalent exists</td>
+</tr>
+<tr>
+<td>question</td>
+<td>Find relevant guidance</td>
+<td>Analyst's plain-language question</td>
+</tr>
+</tbody>
+</table>
+<p>Only the minimum scoring fields are required by the API. Optional missing inputs reduce available evidence; handling a missing value is not proof that its omission is harmless. The history list is capped at 200 events, so it is a bounded demo rather than a complete high-volume account history store. Pseudonyms are not anonymous if someone can link them back to people.</p>
+<h2>C. Try a complete request</h2>
+<p>Start the app using the README, then run this in another PowerShell window:</p>
+<pre><code class="language-powershell">$body = @{
+  transaction = @{
+    transaction_id = 'DEMO-001'; amount = 75.0; time_offset = 907200
+    product = 'W'; network = 'visa'; card_type = 'debit'; identity_present = $true
+  }
+  question = 'What human review steps apply to this transaction?'
+} | ConvertTo-Json -Depth 8
+Invoke-RestMethod -Uri 'http://127.0.0.1:8000/api/review' -Method Post -ContentType 'application/json' -Body $body
 </code></pre>
-<p>The optional local operations stack adds PostgreSQL, MLflow, Prometheus, Grafana, and a monitoring worker. The public Vercel deployment runs interface and inference without that whole stack. Its temporary filesystem is not durable storage.</p>
-<h2>C. Understanding the IEEE-CIS files</h2>
-<p>Your <code>train_transaction.csv</code> contains 590,540 labeled transactions, including 20,663 fraud labels: approximately 3.50%. <code>train_identity.csv</code> provides optional identity/device fields. <code>TransactionID</code> joins them. The importer validates a one-to-one join, so duplicated identity IDs cause an error instead of silently multiplying rows. Transactions without identity information remain valid.</p>
-<p>The competition test files do not contain fraud labels. We cannot calculate honest test accuracy from them. Instead, we reserve a later interval from the labeled training transactions.</p>
-<p>The importer reads selected columns instead of all hundreds of V fields. This reduces memory, training time, feature complexity, and serving size. It is a practical portfolio baseline, not a Kaggle leaderboard solution.</p>
-<p><code>TransactionDT</code> is seconds from a reference point, not a verified calendar timestamp or customer timezone. <code>ProductCD</code> is an anonymized product code, not a merchant category code. <code>dist1</code> is an anonymized distance field, not GPS distance in a known unit. C, D, and M fields are anonymized aggregates/matches; their exact production availability is not established here.</p>
-<p>The entity proxy is a deterministic BLAKE2 hash of anonymized card/address fields. It groups repeat behavior but is not a verified customer account. Two people can share the same grouping values. Hashing is pseudonymization, not a guarantee of anonymity or correct identity.</p>
-<p>Raw CSVs, prepared rows, reference rows, databases, and credentials are excluded from Git and public deployment. Only trained weights, aggregate metrics, metadata, and authored synthetic examples are exported. Keep the original data under its competition access/use terms; do not redistribute it as portfolio sample records.</p>
-<h2>D. The code map — including the actual training file</h2>
+<p><code>risk.probability</code> comes from the calibrated hybrid. <code>risk.model_decision</code> comes from its thresholds. <code>risk.signals</code> lists separate contextual controls. <code>risk.decision</code> is the more severe suggestion. <code>investigation</code> contains retrieved sources and human steps; it cannot modify any risk field.</p>
+<h2>D. Follow a request through the code</h2>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant Analyst
+    participant Desk as Browser desk
+    participant API as FastAPI
+    participant Model as Hybrid model
+    participant RAG as Bounded retriever
+    Analyst-&gt;&gt;Desk: Select transaction
+    Desk-&gt;&gt;API: POST /api/review
+    API-&gt;&gt;API: Validate fields; derive past-only history
+    API-&gt;&gt;Model: Ordered 54-feature matrix
+    Model--&gt;&gt;API: Calibrated probability and model suggestion
+    API-&gt;&gt;API: Evaluate controls and append audit
+    API-&gt;&gt;RAG: Question and fired factor names
+    RAG--&gt;&gt;API: Versioned passages, citations, human steps
+    API--&gt;&gt;Desk: Risk plus separate investigation
+    Analyst-&gt;&gt;Desk: Inspect evidence / save review
+</code></pre>
+<p><code>fraudline/api.py</code> defines Pydantic models and orchestration. Unknown fields, fraud labels, nonfinite values and invalid categories are rejected. Requests are bounded by size and rate. These are demo safeguards, not authentication or distributed rate limiting.</p>
+<h2>E. Features are transformations</h2>
+<p>A raw amount is transformed into a log amount. Relative time becomes cyclic hour features. Earlier activity becomes counts, amount ratios, novelty and time-pattern features. Email domains become buckets and mismatch indicators. All of this happens through <code>fraudline/data.py</code> and <code>fraudline/history.py</code>, shared between offline preparation and serving.</p>
+<p>History excludes the current transaction, equal timestamps and future events. The IEEE account grouping key is a card/address proxy, not a verified person. Location, password changes and real device identifiers are absent from IEEE and therefore remain explicit contextual controls.</p>
+<h2>F. Why modify the Kaggle code?</h2>
+<p>The supplied notebook is designed for a fixed competition train/test batch. It builds aggregate statistics on the combined batch and encodes categories together. That lets later transactions influence earlier feature values. It also selects a rank blend, whose value depends on the other rows in the batch. Neither behavior is appropriate for a stable single-payment API.</p>
+<p>The adaptation retains the central LightGBM → XGBoost residual idea but uses the existing 54-feature serving contract. It replaces grouped folds that can see later dates with expanding-time folds. It saves both model stages and calibration. There is no claim of reproducing the notebook's 488-feature metrics.</p>
+<h2>G. Where exactly does training happen?</h2>
+<p>Open <strong><code>fraudline/hybrid.py</code></strong>, function <strong><code>train()</code></strong>. It:</p>
+<ol>
+<li>Loads a prepared parquet dataset and verifies its SHA-256 against <code>lineage.json</code>.</li>
+<li>Creates chronological training, calibration, comparison and later research partitions.</li>
+<li>Trains three past-only LightGBM folds to make out-of-fold training margins.</li>
+<li>Fits the final LightGBM on the training partition.</li>
+<li>Fits XGBoost on the later training rows with out-of-fold margins as <code>base_margin</code>.</li>
+<li>Fits logistic calibration and chooses thresholds on calibration only.</li>
+<li>Saves native artifacts and evaluates the later partitions.</li>
+</ol>
+<p>The first training prefix has no past-trained prediction; it is excluded from residual fitting. The final base model sees more training data than early fold models. That distribution difference is a remaining limitation of this residual design and must be assessed on new institution-specific validation data.</p>
+<p>The earlier <code>fraudline/pipeline.py</code> trains a separate single-stage model, prepares data and supports existing lifecycle tooling. Running its <code>train</code> command does not create the new hybrid.</p>
+<h2>H. What are raw margins and residual boosting?</h2>
+<p>A binary tree model can output log-odds, an unbounded number that becomes a probability after a sigmoid. LightGBM supplies the starting log-odds. XGBoost receives that value as <code>base_margin</code> and learns an adjustment. At serving time, the same saved LightGBM supplies the margin to the same saved XGBoost model.</p>
+<p>The calibrator learns a slope and intercept on separate calibration rows. The calibrated value is <code>sigmoid(slope × hybrid_margin + intercept)</code>. Thresholds convert that estimate into a model suggestion. A probability is a statistical estimate under this dataset and calibration, not a verified fact about a customer.</p>
+<h2>I. What files does training save?</h2>
 <table>
 <thead>
 <tr>
 <th>File</th>
-<th>Responsibility</th>
+<th>Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>fraudline/data.py</code></td>
-<td>IEEE import, validation, shared features, chronological split</td>
+<td>model.txt</td>
+<td>Native LightGBM trees, byte-preserved in Git</td>
 </tr>
 <tr>
-<td><code>fraudline/history.py</code></td>
-<td>Past-only account history calculations, shared offline/online</td>
+<td>residual.ubj</td>
+<td>Native XGBoost residual model, treated as binary</td>
 </tr>
 <tr>
-<td><code>fraudline/pipeline.py</code></td>
-<td><strong>Actual training</strong>, tuning, calibration, thresholds, evaluation, registry</td>
+<td>metadata.json</td>
+<td>Exact feature order, artifact hashes, calibration, thresholds, folds, splits and lineage</td>
 </tr>
 <tr>
-<td><code>fraudline/model.py</code></td>
-<td>Verified LightGBM inference and TreeSHAP explanations</td>
-</tr>
-<tr>
-<td><code>fraudline/signals.py</code></td>
-<td>Nine-factor coverage and explicit contextual controls</td>
-</tr>
-<tr>
-<td><code>fraudline/scenarios.py</code></td>
-<td>Eleven authored synthetic operational scenarios</td>
-</tr>
-<tr>
-<td><code>fraudline/api.py</code></td>
-<td>HTTP validation and scoring orchestration</td>
-</tr>
-<tr>
-<td><code>fraudline/store.py</code></td>
-<td>Transactional audit records and delayed labels</td>
-</tr>
-<tr>
-<td><code>fraudline/monitor.py</code></td>
-<td>Drift, labeled performance, guarded retraining</td>
-</tr>
-<tr>
-<td><code>fraudline/web/</code></td>
-<td>HTML, CSS, JavaScript, and the learning guide</td>
-</tr>
-<tr>
-<td><code>scripts/export_demo.py</code></td>
-<td>Public-safe model export, excluding training records</td>
-</tr>
-<tr>
-<td><code>scripts/test_scenarios.py</code></td>
-<td>Synthetic end-to-end API checks and saved report</td>
-</tr>
-<tr>
-<td><code>tests/</code></td>
-<td>Regression checks, history parity/leakage checks, API checks</td>
-</tr>
-<tr>
-<td><code>app.py</code></td>
-<td>Vercel entrypoint and native runtime adaptation</td>
+<td>evaluation.json</td>
+<td>Executed research metrics and the warning about reused intervals</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Open <code>fraudline/pipeline.py</code>, function <code>_train()</code>. The <code>LGBMClassifier(...).fit(x, y)</code> call is where the model learns.</strong> The public <code>train()</code> wrapper adds a lifecycle lock. Clicking Analyze in the browser performs inference with a previously trained model; it does not retrain it.</p>
-<h2>E. Why these technologies</h2>
-<p>Python fits this tabular workflow. pandas handles tables, NumPy handles numerical windows, Pandera validates training data, and Pydantic validates untrusted API requests. These validation layers serve different boundaries: training-data consistency versus HTTP payload safety.</p>
-<p>LightGBM learns nonlinear relationships and interactions efficiently on structured data. Its native tree format is compact, and it supports contribution explanations without an additional SHAP package. A deep network would add complexity and serving weight without evidence this project needs it.</p>
-<p>Logistic regression supplies a simpler reference model. StandardScaler prevents wide-range numeric features from dominating its numerical optimization. Both models use the same inputs and later test rows. The comparison helps establish whether the more complex model adds value.</p>
-<p>FastAPI provides typed HTTP validation and ASGI serving. Plain HTML, CSS, and JavaScript are enough for this interface; adding a frontend framework would introduce another build system and dependency tree without solving a current requirement.</p>
-<p>SQLite supports simple local/ephemeral operation; PostgreSQL supports the durable local stack. SQLAlchemy supports both. MLflow records experiments and model aliases, Docker Compose runs the optional services, and Prometheus/Grafana expose operational health. None is required just to run one prediction on Vercel.</p>
-<h2>F. How raw inputs become model features</h2>
-<p>A feature is a numeric input the model can use. <code>data.py:features()</code> is shared by training and inference. Reimplementing it in browser JavaScript would risk different encodings at serving time.</p>
-<p>The contract includes log amount, cyclic relative time, product/network/card-type codes, log distance and distance missingness, identity availability, eleven history features, device type, payer/receiver domain buckets and mismatch, anonymized region codes, C1–C14, selected D fields, and M match flags.</p>
-<p>A feature being available during fitting does not guarantee the trees use it. Zero gain means no selected split used that input in this model; for example, the small-charge feature has zero gain in this run. Its separately authored card-testing policy still activates in the synthetic scenario. Do not confuse input coverage with demonstrated learned detection quality.</p>
-<p><code>log1p(amount)</code> compresses a long monetary tail while preserving order. Missing distance has its own indicator, so missing is distinguishable from a confirmed zero. Unavailable anonymized numbers use -1. Match flags encode true as 1, false as 0, and unknown as -1.</p>
-<p>Sine and cosine encode time cyclically, placing the end of a relative day close to its beginning. They do not establish an actual local hour. Domain buckets use a stable hash; Python's ordinary <code>hash()</code> is process-randomized and unsuitable for persisted encodings. Hash buckets can collide. The API accepts domains rather than full email addresses.</p>
-<p>Categorical integer codes are a compact baseline. Trees can split them numerically, so artificial ordering is a modeling limitation. Native categorical treatment, richer V features, and stronger entity definitions are possible research comparisons on a new validation interval.</p>
-<p>Some anonymized benchmark aggregates may not be available at real authorization time. Their precise timing semantics are unknown here. Missing C/D/M values in manual examples can shift the score relative to the training population. This is why the application is a benchmark workbench rather than a production authorization claim.</p>
-<h2>G. History features without future leakage</h2>
-<p>For each entity proxy, we calculate counts over one hour, one day, and seven days; charges of $5 or less in ten minutes; amount divided by its preceding seven-day average; amount z-score; seconds since the previous event; unseen relative hour; new device type; and payer-domain change.</p>
-<p>For time t, the seven-day window includes events at or after t−604800 and <strong>strictly before t</strong>. The current event, equal-time peers, and future events are excluded. Equal-time events cannot be reliably ordered, so neither may borrow information from the other.</p>
-<p>Sorted groups, cumulative sums, and binary searches make windows efficient. A window sum is a subtraction of two cumulative totals. Squared-amount totals provide variance. Missing-history defaults are counts 0, amount ratio 1, z-score 0, and previous-event delay -1. The history-available flag indicates an identifiable grouping key; inspect the count fields to establish whether prior events actually exist.</p>
-<p>Example: prior amounts 10 and 20 average 15. A new amount 90 gives a 6× ratio. That is unusual, not proof of fraud. With fewer than two prior amounts the z-score defaults to zero because its variance estimate is unstable.</p>
-<p>History is computed before the global time split but uses only earlier <strong>unlabeled</strong> events. That lets a later evaluation transaction use genuinely earlier activity, as an online system could. Fraud labels never enter history calculations.</p>
-<p>The public API accepts at most 200 supplied historical events. A caller can omit or falsify them. Production must retrieve complete, trusted history through an authenticated backend. Offline full history and truncated request history can differ. The request-local design makes this demo reproducible and inexpensive, but is not a trusted feature store.</p>
-<h2>H. The chronological experiment</h2>
-<p>Distinct timestamps define approximately 55% training, 15% calibration/thresholds, 15% promotion, and 15% final test. Exact row counts differ because event density varies over time. Equal timestamps never cross split boundaries.</p>
-<p>Random splitting can place nearly repeated or simultaneous activity on both sides. Chronological testing better approximates future scoring. It still uses one benchmark population; it is not external validation on a different bank.</p>
-<p>Optional Optuna tuning runs six seeded trials on an internal chronological split inside the training interval. It varies leaf count and L2 regularization using average precision. Calibration, promotion, and final labels do not select those hyperparameters.</p>
-<p>The chosen LightGBM configuration then fits all training rows. IEEE uses 300 trees, two worker threads, seeded deterministic options, and explicit binning/regularization. Metadata records effective parameters. Hardware/library changes can still affect reproduction; the lockfile and serialized model preserve the executed environment and weights.</p>
-<p>Do not repeatedly adjust the model after viewing final metrics while still calling that interval untouched. A new iteration needs a fresh holdout or a properly designed temporal backtest.</p>
-<h2>I. Calibration: from raw score to probability</h2>
-<p>The tree model emits a raw score. A separate logistic regression learns a sigmoid mapping on the calibration interval:</p>
-<pre><code class="language-text">p = sigmoid(slope × raw_score + intercept)
-sigmoid(z) = 1 / (1 + exp(-z))
-</code></pre>
-<p>This improves the mapping from ranking score to observed fraud probability. It does not guarantee reliability after the population changes. Brier score measures mean squared probability error; a lower value is better on the same population.</p>
-<p>Calibration and threshold selection share one interval, which is practical but optimistic for selection on that interval. The final later interval provides a separate assessment. Production would also need reliability diagrams, uncertainty assessment, and ongoing calibration checks.</p>
-<h2>J. Approve, review, or block</h2>
-<p>Two thresholds are chosen from a calibration grid. Below review means approve; at/above block means block; the middle means manual review. The illustrative loss assumes a fraudulent approval loses the amount, a review costs $3 and misses 20% of fraudulent value, and a false block costs $15.</p>
-<p>These are example assumptions, not measured business costs. Each model chooses its own thresholds before final evaluation, so the logistic baseline is not unfairly assessed using LightGBM's selected policy.</p>
-<p>Changing costs changes recall, false-positive rate, and review volume. Real deployment must consider investigator capacity, customer harm, appeals, and chargeback economics. The displayed cost is not a claim of actual financial savings.</p>
-<h2>K. Read the metrics correctly</h2>
-<table>
-<thead>
-<tr>
-<th>Metric</th>
-<th>Meaning</th>
-<th>Caution</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>PR-AUC / average precision</td>
-<td>How strongly the ranking concentrates fraud among alerts</td>
-<td>Depends on prevalence; not ordinary accuracy</td>
-</tr>
-<tr>
-<td>ROC-AUC</td>
-<td>Ranking of fraudulent versus legitimate events</td>
-<td>Can look strong with severe imbalance</td>
-</tr>
-<tr>
-<td>Recall</td>
-<td>Fraction of fraud at/above the review threshold</td>
-<td>High recall may require many legitimate reviews</td>
-</tr>
-<tr>
-<td>False-positive rate</td>
-<td>Fraction of legitimate events at/above review</td>
-<td>Not fraud precision</td>
-</tr>
-<tr>
-<td>Brier score</td>
-<td>Mean squared probability error</td>
-<td>Compare on the same population</td>
-</tr>
-<tr>
-<td>Cost / transaction</td>
-<td>Average hypothetical loss</td>
-<td>Not actual bank losses</td>
-</tr>
-</tbody>
-</table>
-<p>An always-approve model could look approximately 96.5% accurate here while catching zero fraud. This is why ordinary accuracy is not the headline.</p>
-<p>The Model evidence page reads actual <code>evaluation.json</code>, comparing the two models on the same later rows. Product slices diagnose uneven behavior; they are not fairness certification. Anonymized categories do not establish protected-group fairness.</p>
-<p>Promotion requires promotion-set PR-AUC improvement greater than 0.001, no increased hypothetical cost, and no recall loss beyond three percentage points against the incumbent. The first model bootstraps an empty registry; this does not certify production quality. IEEE and synthetic champions are kept in separate runs because their metrics describe different populations.</p>
-<h2>L. The nine requested factors</h2>
-<table>
-<thead>
-<tr>
-<th>Factor</th>
-<th>Trained IEEE inputs</th>
-<th>Explicit contextual controls</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Amount</td>
-<td>Amount, ratio, z-score, small-charge count</td>
-<td>≥5× average with ≥3 prior events; ≥4 small charges / 10 min</td>
-</tr>
-<tr>
-<td>Velocity</td>
-<td>1-hour, 1-day, 7-day counts</td>
-<td>≥8 transactions / hour; ≥5 login failures</td>
-</tr>
-<tr>
-<td>Location</td>
-<td>Anonymized distance/region proxies</td>
-<td>IP/billing-country mismatch; travel &gt;500 km and &gt;900 km/h</td>
-</tr>
-<tr>
-<td>Device</td>
-<td>Desktop/mobile type and novelty</td>
-<td>New physical device ID; shared-device links</td>
-</tr>
-<tr>
-<td>Time</td>
-<td>Relative cyclic hour and unseen history hour</td>
-<td>Unseen hour after ≥5 prior events</td>
-</tr>
-<tr>
-<td>Merchant</td>
-<td>Product proxy, not merchant category</td>
-<td>Gift cards, crypto, gambling request review</td>
-</tr>
-<tr>
-<td>Account</td>
-<td>No password/payee data in IEEE</td>
-<td>Password change ≤30 min with amount ≥500; new payee + withdrawal</td>
-</tr>
-<tr>
-<td>Network</td>
-<td>No trained fraud graph</td>
-<td>Device shared by ≥4 distinct accounts in prior 24 hours</td>
-</tr>
-<tr>
-<td>Identity</td>
-<td>Domain comparison, identity availability, M flags</td>
-<td>Supplied identity mismatch/disposable-email flags</td>
-</tr>
-</tbody>
-</table>
-<p>Travel uses Haversine great-circle distance divided by elapsed hours. It is a simple policy with false positives from shared accounts or inaccurate locations. It does not query IP geolocation or know actual travel.</p>
-<p>The network check counts one-hop shared-device relationships. It is not a graph neural network or validated fraud-ring detector. Phone/address network links are not inferred because trustworthy inputs were not supplied.</p>
-<p>Even when a history feature is trained, the hard-coded rule using that feature remains separate policy. The combined decision takes the most restrictive outcome. A model block cannot be downgraded by benign context. Unsupported context is never presented as learned from IEEE.</p>
-<h2>M. Explaining a prediction</h2>
-<p><code>model.py</code> calls LightGBM with <code>pred_contrib=True</code>. TreeSHAP returns contributions plus a bias. Their sum equals the raw tree score; calibration then maps it to probability.</p>
-<p>The interface shows the three largest absolute contributions. Positive raises raw risk relative to model bias; negative lowers it. Values are uncalibrated log-odds, not percentage points. The top three alone do not sum to the whole score. Correlated features can share importance. These are associations, not causal proof.</p>
-<p>Feature gain in Model evidence is accumulated training split improvement. It differs from an individual TreeSHAP explanation. Neither measure justifies treating a person as a criminal.</p>
-<h2>N. Synthetic testing: what it proves</h2>
-<p>Eleven authored scenarios cover baseline, amount spike, card testing, impossible travel, country mismatch, new device, unusual hour, risky merchant, account takeover pattern, shared device, and identity mismatch. None copies an actual IEEE row.</p>
-<p>Each contains a current event, illustrative history, and optional context. The baseline expects no contextual findings. Each stress case expects its relevant factor. Scenario names describe intended tests, not ground-truth labels for classifier accuracy.</p>
-<p>The browser suite sends all eleven through the actual batch API. The Python report additionally checks finite bounded probabilities, model provenance, decision escalation, prediction IDs, and rejection of invalid payloads. These checks test serving and controls. Real-world classifier performance is evaluated separately on held-out labeled IEEE data.</p>
-<p>Editing amount/device changes a request and may invalidate its original expected pattern. The suite uses original authored cases to remain reproducible. A baseline may still get an ML review: no contextual finding is different from guaranteed model approval.</p>
-<h2>O. API: request, validate, score, explain</h2>
-<p>Get full examples with <code>GET /api/scenarios</code>, then send a scenario's <code>transaction</code> to <code>POST /predict</code>. Batch requests use <code>{ &quot;transactions&quot;: [...] }</code>, with at most 100 events.</p>
-<p>Amount, relative time, product, network, card type, and identity availability form the base request. Optional account/domain/device fields, history, context, and whitelisted C/D/M benchmark signals extend it. Labels and arbitrary model-feature injection are not accepted.</p>
-<p>Responses contain probability, initial model decision, final decision, thresholds, model version, reasons, contextual findings, computed history, factor coverage, and an audit ID. Invalid bounds, unknown keys, non-finite numbers, oversized history, or invalid enums are rejected. Bodies above 256 KiB and excessive per-process rates are limited.</p>
-<p><code>/ready</code> checks a verified model loaded; <code>/health</code> only checks the process is alive. <code>/api/model</code> exposes model evidence, <code>/api/factors</code> coverage, <code>/metrics</code> Prometheus metrics, <code>/docs</code> API reference, and <code>/guide</code> this manual.</p>
-<p>The limiter is a demo per-process control, not distributed abuse protection. There is no authenticated browser training endpoint. Operational use needs authentication, authorization, gateway quotas, trusted feature retrieval, and retention controls.</p>
-<h2>P. Audit records and their limits</h2>
-<p>The store links each event digest to the previous one and maintains a transactionally serialized chain head. SQLite uses immediate transactions with a timeout; PostgreSQL supports the durable local stack. Model version and input fingerprints help trace scores.</p>
-<p>Normalized model inputs and the prediction are recorded. Full raw history and every contextual input are not retained, although activated findings are. This limits history duplication but prevents complete contextual replay from the audit record alone. Production needs an access-controlled event store and deliberate retention design.</p>
-<p>Hash links offer tamper evidence, not administrator-proof immutability. Somebody able to rewrite the entire database/head can rebuild the chain. Stronger guarantees need independently anchored or signed records and suitable storage.</p>
-<p>Vercel events are in <code>/tmp</code>, can vanish on restart, and can differ across instances. This is not a durable audit ledger. Use PostgreSQL locally to study durable operations. Do not submit real payment/customer data to the public workbench.</p>
-<h2>Q. Drift is not accuracy</h2>
-<p>The monitor compares feature distributions against a reference using Jensen–Shannon distance and, with sufficient rows, Evidently reports. A distribution flag prompts investigation; it does not prove accuracy declined.</p>
-<p>Accuracy needs ground-truth labels, often delayed by investigations or chargebacks. The store links labels to prediction IDs and reports performance per model version. Treating high model scores as labels would create a self-confirming loop.</p>
-<p>Guarded retraining has a 24-hour cooldown and requires a new validated labeled dataset hash. Repeatedly fitting unchanged data cannot correct a changed population. Promotion gates still apply. Scoring a synthetic case does not retrain or promote anything.</p>
-<p>Free Vercel does not run a continuous background monitoring worker or maintain persistent cross-instance history. The local operations stack demonstrates that workflow. Synthetic drift reports are labeled demonstrations, not observed production incidents.</p>
-<h2>R. Reproduce the IEEE experiment on Windows</h2>
-<p>Run from the repository directory. In this workspace the raw IEEE folder is adjacent to the repository.</p>
-<pre><code class="language-powershell">uv sync --frozen --extra dev --extra ops
-$env:FRAUDLINE_HOME = Join-Path (Get-Location) 'runs/ieee'
-
-# Join, validate, build past-only history, save Parquet and lineage.
-.\.venv\Scripts\python.exe -m fraudline.pipeline prepare --ieee ..\ieee-fraud-detection
-
-# Tune only inside training time; fit, calibrate, assess, register.
-.\.venv\Scripts\python.exe -m fraudline.pipeline train --tune
-
-# Exercise the actual API using authored synthetic cases.
-.\.venv\Scripts\python.exe -m scripts.test_scenarios
-
-# Export weights and aggregate evidence, never source/reference rows.
-.\.venv\Scripts\python.exe -m scripts.export_demo
-
-# Serve this run; restart after promoting a different champion.
-.\.venv\Scripts\python.exe -m uvicorn fraudline.api:app --host 127.0.0.1 --port 8014
-</code></pre>
-<p>Data and lineage are under <code>runs/ieee/data/</code>; models, reference, registry and reports are under <code>runs/ieee/artifacts/</code>. Those local directories are ignored. Public-safe copies go to <code>demo-bundle/</code>. Never run a synthetic demo preparation command against the IEEE run directory.</p>
-<p>For exported-model-only serving, set <code>FRAUDLINE_ARTIFACTS</code> to the absolute <code>demo-bundle</code> path and start Uvicorn. Training extras are unnecessary for that path.</p>
-<p>If validation fails, inspect the issue rather than dropping inconvenient rows. After a crash, remove a stale lifecycle lock only after confirming no lifecycle operation remains active. A separate run directory prevents accidental comparison/replacement of synthetic and real-data champions.</p>
-<h2>S. Read the artifacts</h2>
-<p><code>lineage.json</code> records rows, prevalence, hashes, seed, schema and source. SHA-256 detects changed bytes; it does not prove data truth or absence of leakage.</p>
-<p><code>model.txt</code> stores native LightGBM trees. <code>metadata.json</code> stores ordered feature names, weight hash, sigmoid parameters, thresholds, time splits, training parameters and gain importance. <code>evaluation.json</code> contains promotion, final, baseline and product-slice metrics. <code>reference.parquet</code> holds training-derived feature rows for local drift comparisons and is excluded from public export.</p>
-<p>Startup checks model hash and feature order. That detects accidental mismatches, not a malicious person able to replace both metadata and weights. <code>.gitattributes</code> preserves exact model bytes across Windows/Linux; line-ending conversion would otherwise change hashes. Native libraries are binary too.</p>
-<p>The recorded training Git revision is the revision visible at run time. A run made with uncommitted changes cannot claim clean source provenance from that hash alone. The implementation commit, commands, lockfile and execution evidence together describe the run. Reproduction should use committed source.</p>
-<h2>T. Local operations and public hosting</h2>
-<p>Vercel serves a compact portfolio interface and Python inference. Heavy training remains local. Free quotas and service terms can change. The app requires no paid LLM, hosted geolocation service, or managed feature-store subscription.</p>
-<p>LightGBM needs a compatible OpenMP library on Linux. <code>app.py</code> preloads the bundled compatible <code>libgomp.so.1</code>; its notices/licenses remain under <code>native/</code>. This is runtime compatibility, separate from modeling.</p>
-<p>The bundle is pinned at process startup. Changing a local registry does not change an already deployed public instance. Export, verify, and deploy explicitly. The GitHub/Vercel Git integration or deploy hook must be configured before promising automatic Git deployments.</p>
-<p>The optional Docker Compose stack is heavier. Its default artifact/data mounts support the earlier synthetic bootstrap. Point them at the IEEE run before using it for the real-data champion. PostgreSQL, MLflow, Grafana and Prometheus use local ports and generated credentials; do not publish credentials or expose these services broadly.</p>
-<h2>U. The UI/UX choices</h2>
-<p>There are now two independent interfaces sharing one prediction API. The public homepage (<code>/</code>) serves <code>client.html</code>, <code>client.css</code> and <code>client.js</code>: a minimal neon-on-dark client experience with an HX footer signature. It provides guided examples, editable details, plain-language outcomes, suggested next steps, three browser-memory-only recent checks, and a downloadable text summary. Changing input clears the old result. The previous technical interface is preserved at <code>/workbench</code>, and this guide links back there. A separate route is not authentication; neither site is a private customer account.</p>
-<p>The redesign uses the installed UI/UX Pro Max guidance for a data-dense financial workbench: dark navigation rail, neutral canvas, teal interaction states, and amber/red review/block meanings. Text accompanies color so status remains understandable without color perception.</p>
-<p>The main sequence is choose a case, inspect input, edit limited fields, analyze, inspect receipt. Detailed JSON/history are progressively disclosed. Model evidence and signal coverage stay separate so prominent scores do not hide unsupported assumptions.</p>
-<p>The interface includes field labels, keyboard focus, touch-sized controls, disabled/loading feedback, status announcements, reduced-motion handling, and responsive layouts. On phones, scenario choices become a horizontal strip. Dense tables scroll within their container. Operations retains access to readiness, monitoring, metrics and precomputed drift exercises. No fake live payment feed or invented operational metrics are needed.</p>
-<p>System typography with a local Fira preference avoids third-party font requests. Specific content, deliberate hierarchy, and visible provenance supply identity without another frontend framework.</p>
-<h2>V. Verification commands</h2>
-<pre><code class="language-powershell">.\.venv\Scripts\python.exe -m ruff check fraudline app.py scripts tests
-.\.venv\Scripts\python.exe -m pytest -q
-node --check fraudline/web/app.js
-</code></pre>
-<p>Checks cover training/inference compatibility, validation, audit behavior, model integrity, join fan-out, time splits, lifecycle logic, offline/online history parity, account isolation, equal/future event exclusion, and scenario controls. Unit tests do not establish external fraud accuracy.</p>
-<p>The end-to-end report records scenario results from the loaded model. Browser checks should cover desktop/mobile, keyboard usability, errors and the complete score-to-receipt flow. See the execution report for checks actually run rather than assuming every possible device was tested.</p>
-<h2>W. A reading path for learning</h2>
-<ol>
-<li>Read the baseline transaction in <code>scenarios.py</code>; separate current input from history.</li>
-<li>Read <code>history.py</code>; manually calculate a small amount ratio.</li>
-<li>Follow raw amount to log amount in <code>data.py:features()</code>.</li>
-<li>Find fitting, calibration, thresholds and evaluation in <code>pipeline.py:_train()</code>.</li>
-<li>Follow raw score to probability/decision in <code>model.py:predict()</code>.</li>
-<li>Find impossible travel in <code>signals.py</code>; see why it changes decision, not probability.</li>
-<li>Trace <code>api.py:score()</code> through enrichment, model, policy and audit.</li>
-<li>Explain PR-AUC, recall and false-positive rate in your own words using Model evidence.</li>
-</ol>
-<p>Change one thing at a time. Do not tune on the final holdout just to make portfolio numbers look better.</p>
-<h2>X. Exercises to deepen understanding</h2>
+<p><code>fraudline/model.py</code> verifies hashes and feature order before serving. It does not load a pickle. Current explanations show <strong>LightGBM-stage contributions only</strong>; they exclude the residual model and are explicitly labeled. They must not be presented as a complete hybrid SHAP explanation or causal explanation.</p>
+<h2>J. How to retrain safely</h2>
+<p>Follow the README preparation and hybrid commands. Use a new output directory. Raw CSVs, prepared parquet, references, local databases and environment secrets remain ignored and outside the public bundle.</p>
+<p>The hybrid command does not automatically promote a model. To test one locally without changing the public champion, call <code>create_app(model_path=Path(...))</code> or create an isolated artifacts directory with <code>models/&lt;version&gt;</code> and a <code>registry.json</code> containing that champion. Set <code>FRAUDLINE_ARTIFACTS</code> to that isolated directory before starting the API. <code>/api/model</code> additionally needs that model's evaluation file.</p>
+<p>For an intentional owner release: verify results and bundle integrity, update the private registry with a documented decision, and run <code>python -m scripts.export_demo</code> using that private artifacts directory. The exporter includes both stages but excludes raw/reference rows. It removes stale public model directories inside <code>demo-bundle/models</code>, so preserve needed historical reports first. Do not silently compare synthetic and real-data populations or publish a model solely because the final research score looks appealing.</p>
+<p>The November hybrid was intentionally selected to implement the user's architecture, not automatically promoted by the older performance gate. Its deployment reason is recorded in the committed registry. The previous native bundle remains available as historical evidence and rollback material.</p>
+<h2>K. Results and honest comparisons</h2>
+<p>The new CPU run uses 300 rounds and two threads. On the 88,081-row later interval it produced average precision 0.46008, ROC-AUC 0.87565, Brier 0.02457, recall 0.78467 and false-positive rate 0.18681 at its calibrated review threshold. The previous single-stage model's average precision was 0.46145. The hybrid does not demonstrate an accuracy improvement.</p>
+<p>These intervals were already inspected during the earlier project. Calling the new results an untouched test would be wrong. A bank-specific evaluation must reserve genuinely new temporal data, define operational costs and capacity, check segments and missing inputs, and examine calibration and false-positive burden. Synthetic scenarios test software behavior, not detection accuracy.</p>
+<h2>L. What was reused from Proofline?</h2>
+<p>Proofline's application is evidence-first RAG for AI-security questions. Its JavaScript core provides reciprocal rank fusion, source diversity, citation checks and evaluation helpers. The unified app ports the relevant ideas into <code>fraudline/investigation.py</code> and includes MIT attribution in <code>docs/PROOFLINE-NOTICE.md</code>.</p>
+<p>The original OWASP corpus was not repurposed as fraud policy. Supabase, gte-small embeddings and OpenRouter are not required here. The local corpus is small enough for transparent keyword retrieval and an explicit factor-matching ranking channel. This is not semantic vector search.</p>
+<h2>M. How does the bounded investigation work?</h2>
+<p>The server inspects the scored transaction's fired control factors, retrieves playbooks using the question and factors, combines ranked results using <code>1 / (40 + rank)</code>, and returns up to five unique sources. Each playbook is one document/passage, so source duplication cannot crowd out the set. Broad default questions return general human-review guidance rather than unrelated risk warnings.</p>
+<p>Answers are extractive: the returned prose is copied from selected authored playbooks with numbered references. Suggested steps are also authored alongside those passages. This is an auditable retrieval-and-answer workflow, <strong>not a free-form LLM agent</strong>. No external provider receives transaction data or questions. It has only three fixed steps: inspect, retrieve and validate citations. It cannot execute transfers, block accounts, change policies or invoke arbitrary tools.</p>
+<p>Each source includes a title, local URL, version, publisher and passage hash. Unsupported questions with no matching factor/evidence abstain. Fired factors can still provide relevant case evidence even when the question itself is unsupported; the UI presents this as guidance, not an answer to every possible question. Citation checks validate reference IDs only; they do not prove relevance or legal correctness.</p>
+<h2>N. Why no external language model by default?</h2>
+<p>The smallest useful integration provides sources and review steps without a model key, paid fallback, unpredictable free-provider availability or transmission of financial details. Adding generative answers later should be an explicit, institution-approved choice with data minimization, provider controls, bounded tools, evidence-grounded output checks and measured answer quality. Existing Proofline generation code is a reference, not a production banking connector.</p>
+<h2>O. How do imports work?</h2>
+<p>The browser reads a JSON object containing <code>transactions</code>. It checks size, count and unique IDs, then sends the batch to the API's authoritative typed validator. If any record is invalid, the queue remains unchanged. Successful validation also scores and writes audit entries. Selecting an imported record creates another scored review. This makes the demo transparent but is not idempotent ingestion.</p>
+<p>UI results and imported records stay in browser memory until reload. <strong>Save review</strong> downloads the current assessment and retrieved evidence; it does not archive a customer case in a permanent system. Never import real banking data into the public demo.</p>
+<h2>P. What is stored?</h2>
+<p>The browser holds the queue and cached results in memory. The server's existing audit store records scoring inputs/features and model results using hash-linked events. Vercel's <code>/tmp</code> SQLite can disappear or differ between instances. A hash chain does not solve durability, authorization, tamper resistance against an administrator or tenant isolation. Local PostgreSQL is optional in the existing Docker stack.</p>
+<p>Playbooks are versioned with the application. Replacing them requires an owner code release; there is no public policy upload or policy-edit endpoint. Questions and generated investigation responses are not written to an external RAG database.</p>
+<h2>Q. Frontend design choices</h2>
+<p>The interface keeps the approved charcoal, lime, cyan and subtle HX identity. The operator's primary surface is a ledger next to a receipt. Search and a status filter reduce navigation; the details disclosure keeps thresholds and technical caveats available without dominating the task. Source passages are expandable and review suggestions include text, not just color. Mobile stacks the queue above the receipt.</p>
+<p>The same Impeccable and UI/UX Pro Max skills informed hierarchy, accessible controls, contrast and responsive layout. Fonts are self-hosted. There are no invented live transaction counters, fabricated savings or decorative charts presented as evidence.</p>
+<h2>R. Verification and CI/CD</h2>
+<p><code>tests/test_investigation.py</code> checks rank fusion, unsupported-question abstention, allowed investigation steps, saved hybrid reload, one-record/batch parity, artifact tampering, timestamp fold boundaries, the review endpoint and label rejection. Existing suites check data contracts, history, controls, audit and lifecycle behavior. <code>scripts/test_scenarios.py</code> exercises all eleven authored cases through the actual serving path.</p>
+<p>GitHub Actions runs lint, tests, synthetic serving verification, pipeline smoke checks, runtime dependency audit and a Docker build. Optional operations dependency findings are recorded separately. Vercel deployment is an explicit CLI release unless a deploy hook is configured. A successful GitHub push alone is not proof that production changed.</p>
+<h2>S. Reading order for the code</h2>
+<p>Start with <code>fraudline/web/desk.html</code> and <code>desk.js</code>, then <code>api.py</code> (<code>Transaction</code>, <code>Review</code>, <code>score</code>, <code>/api/review</code>). Next read <code>history.py</code>, <code>data.py</code>, <code>model.py</code> and <code>hybrid.py</code>. Finish with <code>investigation.py</code>, <code>store.py</code>, tests and <code>.github/workflows/ci.yml</code>. The source is intentionally one FastAPI app rather than two independent backends with a second frontend build.</p>
+<h2>T. Troubleshooting</h2>
 <ul>
-<li>Add a huge future event to a tiny test history; confirm earlier features stay unchanged.</li>
-<li>Supply inconsistent travel coordinates and explain why a legitimate transaction could trigger a rule.</li>
-<li>Remove benchmark inputs from a synthetic case and discuss missing-input distribution shift.</li>
-<li>Draw a reliability diagram on a new labeled validation interval.</li>
-<li>Measure review volume at several thresholds before discussing staffing capacity.</li>
-<li>Design a trusted history retrieval interface before replacing supplied histories with live storage.</li>
+<li><strong>Model unavailable:</strong> check artifact path, champion registry and hashes. Do not disable integrity checks.</li>
+<li><strong>Input rejected:</strong> compare required fields, numeric types and enums with <code>/openapi.json</code>; use the downloaded synthetic example.</li>
+<li><strong>No evidence:</strong> revise the question to the supported playbooks; an abstention is preferable to invented guidance.</li>
+<li><strong>Unexpected review:</strong> separate model threshold behavior from contextual escalation; inspect missing inputs and the supplied past history.</li>
+<li><strong>Old page after deployment:</strong> verify asset version, deployment alias and served model version before assuming a training problem.</li>
+<li><strong>Training dependency missing:</strong> install the locked <code>train</code> or <code>dev</code> extras; the lean serving environment intentionally excludes training tools.</li>
 </ul>
-<p>Use NumPy, pandas and the standard library where sufficient; a new dependency is not automatically a better solution.</p>
-<h2>Y. What remains limited</h2>
-<p>This is one benchmark experiment. Anonymized fields and the entity proxy have uncertain authorization-time meaning. Relative time is not verified local time. Context is only as trustworthy as its source. Policies and costs are illustrative. No merchant, identity, disposable-domain or IP-geolocation verification service is connected.</p>
-<p>Public hosting has ephemeral audit storage, no persistent feature store, no authentication, no continuous worker and no payment integration. Device links are a request-local relationship count. Explanations are associations. Neither a score nor a rule proves fraud.</p>
-<p>Operational use requires trusted authorization-time data, privacy/access controls, durable history, independent temporal/external validation, customer-impact analysis, capacity-aware policy, calibration monitoring, incident procedures and human review. These are prerequisites, not capabilities this demo claims to include.</p>
-<h2>Z. Glossary</h2>
-<p><strong>Feature:</strong> numeric model input. <strong>Label:</strong> observed target outcome. <strong>Inference:</strong> applying a fitted model. <strong>Leakage:</strong> information unavailable at scoring time entering the experiment. <strong>Calibration:</strong> mapping score toward observed probability. <strong>Threshold:</strong> cutoff for an action. <strong>TreeSHAP:</strong> additive tree contribution explanations. <strong>Chronological holdout:</strong> later interval reserved for evaluation. <strong>Drift:</strong> changing input/outcome distributions. <strong>Lineage:</strong> data/artifact provenance. <strong>Champion:</strong> selected model. <strong>Challenger:</strong> candidate evaluated for promotion. <strong>Pseudonymization:</strong> replacing identifiers with repeatable substitutes without guaranteeing anonymity. <strong>Contextual control:</strong> explicit policy separate from learned probability.</p>
-<h2>References and next documents</h2>
-<ul>
-<li><a href="https://www.kaggle.com/competitions/ieee-fraud-detection">IEEE-CIS competition</a></li>
-<li><a href="https://lightgbm.readthedocs.io/en/stable/Python-API.html">LightGBM Python API</a></li>
-<li><a href="https://scikit-learn.org/stable/modules/calibration.html">scikit-learn probability calibration</a></li>
-<li><a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html">scikit-learn average precision</a></li>
-<li><a href="https://fastapi.tiangolo.com/tutorial/body/">FastAPI request bodies</a></li>
-<li><a href="https://vercel.com/docs/functions/runtimes/python">Vercel Python runtime</a></li>
-</ul>
-<p>Read the model card, runbook and execution report alongside this guide. Code and serialized execution artifacts are the final source of truth when a general explanation is less specific.</p>
+<h2>U–Z. Before a real institution uses it</h2>
+<p>Use a bank-specific model and feature availability contract; approved internal policies with owners and effective dates; authenticated staff accounts, roles and tenant isolation; a trusted history store; idempotent ingestion; encrypted durable audit and retention controls; a fresh temporal validation dataset; monitored service performance and rollback; and an approved human decision process. These are future integration requirements, not completed features or claims of regulatory compliance.</p>
+<p>The core separation should remain: <strong>the detector estimates risk, controls flag context, retrieval supplies evidence, and authorized humans decide consequential actions.</strong></p>
 </main></body></html>

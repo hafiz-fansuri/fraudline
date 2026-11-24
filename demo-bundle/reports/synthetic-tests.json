@@ -1,5 +1,5 @@
 {
-  "model_version": "fl-20261117072348-496b08",
+  "model_version": "fl-hybrid-20261124-final",
   "passed": 11,
   "total": 11,
   "results": [
@@ -8,7 +8,7 @@
       "expected_factor": null,
       "activated_factors": [],
       "passed": true,
-      "model_probability": 0.017483,
+      "model_probability": 0.016072,
       "model_decision": "approve",
       "final_decision": "approve"
     },
@@ -19,7 +19,7 @@
         "amount"
       ],
       "passed": true,
-      "model_probability": 0.01805,
+      "model_probability": 0.016617,
       "model_decision": "approve",
       "final_decision": "review"
     },
@@ -30,7 +30,7 @@
         "velocity"
       ],
       "passed": true,
-      "model_probability": 0.030309,
+      "model_probability": 0.025421,
       "model_decision": "approve",
       "final_decision": "review"
     },
@@ -41,7 +41,7 @@
         "location"
       ],
       "passed": true,
-      "model_probability": 0.018712,
+      "model_probability": 0.016529,
       "model_decision": "approve",
       "final_decision": "block"
     },
@@ -52,7 +52,7 @@
         "location"
       ],
       "passed": true,
-      "model_probability": 0.017483,
+      "model_probability": 0.016072,
       "model_decision": "approve",
       "final_decision": "review"
     },
@@ -63,7 +63,7 @@
         "device"
       ],
       "passed": true,
-      "model_probability": 0.016114,
+      "model_probability": 0.012489,
       "model_decision": "approve",
       "final_decision": "review"
     },
@@ -74,7 +74,7 @@
         "time"
       ],
       "passed": true,
-      "model_probability": 0.014689,
+      "model_probability": 0.01494,
       "model_decision": "approve",
       "final_decision": "review"
     },
@@ -85,7 +85,7 @@
         "merchant"
       ],
       "passed": true,
-      "model_probability": 0.017483,
+      "model_probability": 0.016072,
       "model_decision": "approve",
       "final_decision": "review"
     },
@@ -97,7 +97,7 @@
         "amount"
       ],
       "passed": true,
-      "model_probability": 0.01805,
+      "model_probability": 0.028972,
       "model_decision": "approve",
       "final_decision": "review"
     },
@@ -109,7 +109,7 @@
         "network"
       ],
       "passed": true,
-      "model_probability": 0.017483,
+      "model_probability": 0.016072,
       "model_decision": "approve",
       "final_decision": "review"
     },
@@ -120,7 +120,7 @@
         "identity"
       ],
       "passed": true,
-      "model_probability": 0.007714,
+      "model_probability": 0.00908,
       "model_decision": "approve",
       "final_decision": "review"
     }

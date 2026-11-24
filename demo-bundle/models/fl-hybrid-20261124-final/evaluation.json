@@ -1,0 +1,24 @@
+{
+  "version": "fl-hybrid-20261124-final",
+  "data_source": "ieee-cis",
+  "promoted": false,
+  "promotion": {
+    "pr_auc": 0.49136251989713675,
+    "roc_auc": 0.8878549019747319,
+    "brier": 0.023069022223353386,
+    "recall": 0.7744186046511627,
+    "false_positive_rate": 0.15291225015587684,
+    "cost_per_transaction": 2.3025306488814152,
+    "rows": 88013
+  },
+  "final_test": {
+    "pr_auc": 0.4600773477347562,
+    "roc_auc": 0.8756455151863939,
+    "brier": 0.024570612236857414,
+    "recall": 0.7846655791190864,
+    "false_positive_rate": 0.18681189423167405,
+    "cost_per_transaction": 2.474725162066734,
+    "rows": 88081
+  },
+  "warning": "Research rerun on previously inspected IEEE intervals; not a new untouched benchmark. 54 serving features, not notebook's 488 transductive features."
+}

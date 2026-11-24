@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0b0f12" />
+    <title>Fraudline — Transaction review</title>
+    <link rel="stylesheet" href="/assets/desk.css?v=20261124" />
+    <script defer src="/assets/desk.js?v=20261124"></script>
+  </head>
+  <body>
+    <a class="skip" href="#review">Skip to transaction review</a>
+    <header>
+      <a class="brand" href="/">fraudline<span> + proofline</span></a>
+      <nav aria-label="Main navigation">
+        <a href="#review">Review queue</a><a href="#inputs">How inputs work</a
+        ><a href="/workbench">Model evidence</a>
+      </nav>
+      <span class="signature" aria-label="HX signature">HX</span>
+    </header>
+    <main>
+      <section class="intro">
+        <div>
+          <h1>See the risk.<br /><span>Follow the evidence.</span></h1>
+          <p>
+            One desk for transaction screening and guided investigation. Select
+            a payment to see its risk signals, supporting guidance and next
+            review steps.
+          </p>
+        </div>
+        <aside>
+          <strong>Demonstration environment</strong>
+          <p>
+            Synthetic examples. No payment network connected. Recommendations
+            never move or block money.
+          </p>
+          <a href="/guide">Read the engineering guide</a>
+        </aside>
+      </section>
+      <section id="review" aria-labelledby="review-heading">
+        <div class="section-head">
+          <div>
+            <h2 id="review-heading">Transaction review</h2>
+            <p id="queue-note">Loading synthetic examples…</p>
+          </div>
+          <div class="actions">
+            <button id="template" type="button">Download example JSON</button
+            ><button class="primary" id="import-button" type="button">
+              Import JSON</button
+            ><input
+              id="upload"
+              hidden
+              type="file"
+              accept=".json,application/json"
+            />
+          </div>
+        </div>
+        <p id="error" class="error" role="alert" hidden></p>
+        <div class="desk">
+          <section class="queue" aria-label="Transactions">
+            <label for="search">Find a transaction</label
+            ><input
+              id="search"
+              type="search"
+              placeholder="Search ID or description"
+            /><label for="filter">Review status</label
+            ><select id="filter">
+              <option value="all">All transactions</option>
+              <option value="unchecked">Not checked</option>
+              <option value="review">Review suggested</option>
+              <option value="block">Pause suggested</option>
+              <option value="approve">No alert</option>
+            </select>
+            <div id="queue" aria-live="polite"></div>
+          </section>
+          <article class="receipt" id="receipt" aria-labelledby="case-title">
+            <div class="empty">
+              <h3>Select a transaction</h3>
+              <p>
+                Its model assessment and investigation evidence will appear
+                here.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section id="inputs" class="inputs">
+        <div>
+          <h2>The payment is the input.<br />The review is your task.</h2>
+          <p>
+            In a bank integration, your payment system sends the transaction and
+            retrieves earlier activity from a trusted history store. Staff
+            review the findings; they do not fill in model features by hand.
+          </p>
+          <a href="/checker">Open the single-payment example checker</a>
+        </div>
+        <div>
+          <details open>
+            <summary>What does inference receive?</summary>
+            <p>
+              Amount, relative event time, product code, card network, card type
+              and whether identity data exists. Optional device, email-domain,
+              region, earlier transactions and contextual signals add detail.
+            </p>
+            <p>
+              The backend derives 54 features. It never receives the fraud
+              label. Amounts here use the IEEE dataset's USD convention; other
+              currencies need a validated mapping.
+            </p>
+          </details>
+          <details>
+            <summary>How do I import transactions?</summary>
+            <p>
+              Download the example JSON, keep its field names and import an
+              object containing a <code>transactions</code> list. Maximum 100
+              transactions and 256 KiB. This public demo is for synthetic data
+              only.
+            </p>
+          </details>
+          <details>
+            <summary>What does Proofline contribute?</summary>
+            <p>
+              A bounded evidence workflow: inspect the risk findings, retrieve
+              relevant playbooks, and return cited passages and human review
+              steps. This version uses local extractive RAG without an external
+              language model. Playbooks are illustrative, not approved bank
+              policy.
+            </p>
+          </details>
+          <details>
+            <summary>Is this ready for customer banking data?</summary>
+            <p>
+              No. This public demo has no account authentication or tenant
+              isolation. Production needs bank-approved policies, trusted
+              inputs, access controls, durable audit storage, validation and
+              operational review.
+            </p>
+          </details>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <span>Fraudline × Proofline · Evidence before action</span>
+      <div>
+        <a href="/assets/playbooks.md">Playbooks</a
+        ><a href="/docs">API reference</a><span class="signature">HX</span>
+      </div>
+    </footer>
+  </body>
+</html>

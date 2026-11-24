@@ -1,6 +1,6 @@
 {
-  "champion": "fl-20261117072348-496b08",
-  "previous": null,
+  "champion": "fl-hybrid-20261124-final",
+  "previous": "fl-20261117072348-496b08",
   "history": [
     {
       "version": "fl-20261117072348-496b08",
@@ -17,6 +17,21 @@
       },
       "data_source": "ieee-cis",
       "mlflow_version": null
+    },
+    {
+      "version": "fl-hybrid-20261124-final",
+      "promoted": false,
+      "deployment_reason": "Owner requested supplied hybrid architecture; not evidence of superior accuracy",
+      "data_source": "ieee-cis",
+      "metrics": {
+        "pr_auc": 0.49136251989713675,
+        "roc_auc": 0.8878549019747319,
+        "brier": 0.023069022223353386,
+        "recall": 0.7744186046511627,
+        "false_positive_rate": 0.15291225015587684,
+        "cost_per_transaction": 2.3025306488814152,
+        "rows": 88013
+      }
     }
   ]
 }

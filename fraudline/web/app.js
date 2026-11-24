@@ -268,7 +268,7 @@ function renderModel({ metadata: m, evaluation: e }) {
     ["Hypothetical cost / transaction ↓", "cost_per_transaction"],
   ];
   $("#model-content").innerHTML =
-    `<div class="evidence-header"><div><p class="eyebrow">VERIFIED MODEL BUNDLE</p><h2>LightGBM, trained on ${esc(m.data_source)}.</h2><p>${esc(e.warning)}</p></div><a href="https://github.com/hafiz-fansuri/fraudline/blob/main/fraudline/pipeline.py" target="_blank" rel="noreferrer">Open training file ↗</a></div><div class="evidence-grid"><div><h3>Untouched chronological test interval</h3><div class="table-scroll"><table><thead><tr><th>Measure</th><th>Logistic baseline</th><th>LightGBM</th></tr></thead><tbody>${metrics.map(([name, key]) => `<tr><td>${name}</td><td>${e.baseline[key].toFixed(4)}</td><td>${f[key].toFixed(4)}</td></tr>`).join("")}</tbody></table></div><p class="muted">Cost uses illustrative review and false-block assumptions. Each model selects its own thresholds on calibration data. These are not measured financial savings.</p><h3>Time is part of the evaluation</h3><div class="split-bar">${Object.entries(
+    `<div class="evidence-header"><div><p class="eyebrow">VERIFIED MODEL BUNDLE</p><h2>${m.model_kind === "lgb-xgb-residual" ? "LightGBM + XGBoost" : "LightGBM"}, trained on ${esc(m.data_source)}.</h2><p>${esc(e.warning)}</p></div><a href="https://github.com/hafiz-fansuri/fraudline/blob/main/fraudline/hybrid.py" target="_blank" rel="noreferrer">Open training file ↗</a></div><div class="evidence-grid"><div><h3>Chronological research interval (previously inspected)</h3><div class="table-scroll"><table><thead><tr><th>Measure</th><th>Historical logistic baseline</th><th>Current model</th></tr></thead><tbody>${metrics.map(([name, key]) => `<tr><td>${name}</td><td>${e.baseline ? e.baseline[key].toFixed(4) : "Not rerun"}</td><td>${f[key].toFixed(4)}</td></tr>`).join("")}</tbody></table></div><p class="muted">Cost uses illustrative review and false-block assumptions. Each model selects its own thresholds on calibration data. These are not measured financial savings.</p><h3>Time is part of the evaluation</h3><div class="split-bar">${Object.entries(
       m.splits,
     )
       .map(
@@ -282,7 +282,7 @@ function renderModel({ metadata: m, evaluation: e }) {
       )
       .join(
         "",
-      )}</div><h3>Largest training gain contributions</h3>${Object.entries(
+      )}</div><h3>LightGBM-stage training gain (excludes residual)</h3>${Object.entries(
       m.feature_importance_gain || {},
     )
       .sort((a, b) => b[1] - a[1])
